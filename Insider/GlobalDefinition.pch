@@ -1,0 +1,31 @@
+//
+//  GlobalDefinition.pch
+//  Insider
+//
+//  Created by Lun on 2017/2/22.
+//  Copyright © 2017年 Lun. All rights reserved.
+//
+
+#ifndef GlobalDefinition_pch
+#define GlobalDefinition_pch
+
+#define DEFAULT_FREQUENCY                                            10
+#define DEFAULT_SAMPLE_SIZE                                         100
+#define DEFAULT_P0                                                    1
+#define DEFAULT_POPULATION                                          100
+#define RSSI_MAXIMUM                                                -30
+#define RSSI_MINIMUM                                                -90
+#define UUID1                   @"68EB5AEF-AD81-4F3B-A3CD-037A98DA2F1E"
+#define UUID2                   @"0E8472D4-1999-4020-8B4C-76F90FDB4F7E"
+#define UUID3                   @"B5313F42-11E6-4BE6-9C87-754DECF18935"
+#define textBeacon1                                  @"insiderBeacon-1"
+#define textBeacon2                                  @"insiderBeacon-2"
+#define textBeacon3                                  @"insiderBeacon-3"
+#define x1                                                          0.5
+#define y1                                                          0.0
+#define x2                                                          3.3
+#define y2                                                          1.5
+#define x3                                                          1.0
+#define y3                                                          4.2
+
+#endif /* GlobalDefinition_pch */
