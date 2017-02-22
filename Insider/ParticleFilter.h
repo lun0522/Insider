@@ -22,7 +22,7 @@
 @property (assign, nonatomic) float R;
 @property (assign, nonatomic) float den;
 
-- (ParticleFilter *)initWithDimension:(int)dimension worldWidth:(float)width worldHeight:(float)height population:(int)population Q:(float)q R:(float)r;
+- (ParticleFilter *)initWithDimension:(int)dimension worldWidth:(float)width worldHeight:(float)height population:(int)population initValue:(float)value Q:(float)q R:(float)r;
 - (float)filterWithObservation:(float)observation;
 - (float)filterWithObservationX:(float)x Y:(float)y;
 

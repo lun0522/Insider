@@ -245,9 +245,7 @@
                 [self.rawData removeObjectAtIndex:0];
                 [self.KalmanData removeObjectAtIndex:0];
                 [self.ParticleData removeObjectAtIndex:0];
-                
-                [self.rawData addObject:RSSI];
-                
+
                 if (!self.beingSampledBeacon.kalmanFilter) {
                     self.beingSampledBeacon.kalmanFilter = [[KalmanFilter alloc]
                                                             initWithQ:self.kalman_Q
@@ -260,15 +258,17 @@
                                                                      worldWidth:0
                                                                     worldHeight:-100
                                                                      population:DEFAULT_POPULATION
+                                                                      initValue:RSSI.floatValue
                                                                               Q:self.particle_Q
                                                                               R:self.particle_R];
                 } else {
                     [self.beingSampledBeacon operateKalmanFilterWithObservation:RSSI.floatValue];
-                    [self.KalmanData addObject:@(self.beingSampledBeacon.kalmanFilter.X)];
-                    
                     [self.beingSampledBeacon operateParticleFilterWithObservation:RSSI.floatValue];
-                    [self.ParticleData addObject:@(self.beingSampledBeacon.particleFilter.center)];
                 }
+                
+                [self.rawData addObject:RSSI];
+                [self.KalmanData addObject:@(self.beingSampledBeacon.kalmanFilter.X)];
+                [self.ParticleData addObject:@(self.beingSampledBeacon.particleFilter.center)];
                 
                 PNLineChartData *data1 = [self chartWithR:52.0 g:152.0 b:219.0 array:self.rawData];
                 PNLineChartData *data2 = [self chartWithR:231.0 g:76.0 b:60.0 array:self.KalmanData];

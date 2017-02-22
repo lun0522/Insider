@@ -14,6 +14,7 @@
                            worldWidth:(float)width
                           worldHeight:(float)height
                            population:(int)population
+                            initValue:(float)value
                                     Q:(float)q
                                     R:(float)r {
     if (self = [super init]) {
@@ -24,7 +25,7 @@
         _population = population;
         _states = [[NSMutableArray alloc] initWithCapacity:population];
         _weights = [[NSMutableArray alloc] initWithCapacity:population];
-        _center = -1;
+        _center = value;
         _Q = q;
         _R = r;
         _den = (float)sqrt(2 * M_PI * _R);
