@@ -258,13 +258,12 @@
                                                                      worldWidth:0
                                                                     worldHeight:-100
                                                                      population:DEFAULT_POPULATION
-                                                                      initValue:RSSI.floatValue
                                                                               Q:self.particle_Q
                                                                               R:self.particle_R];
-                } else {
-                    [self.beingSampledBeacon operateKalmanFilterWithObservation:RSSI.floatValue];
-                    [self.beingSampledBeacon operateParticleFilterWithObservation:RSSI.floatValue];
                 }
+                
+                [self.beingSampledBeacon operateKalmanFilterWithObservation:RSSI.floatValue];
+                [self.beingSampledBeacon operateParticleFilterWithObservation:RSSI.floatValue];
                 
                 [self.rawData addObject:RSSI];
                 [self.KalmanData addObject:@(self.beingSampledBeacon.kalmanFilter.X)];
