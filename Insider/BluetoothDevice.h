@@ -10,9 +10,6 @@
 #import "KalmanFilter.h"
 #import "ParticleFilter.h"
 
-#define val_a        -57.59
-#define val_b        -25.42
-
 @interface BluetoothDevice : NSObject
 
 @property (strong, nonatomic) NSString *deviceUUID;
@@ -22,10 +19,10 @@
 @property (retain, nonatomic) NSNumber *deviceRSSI;
 @property (strong, nonatomic) NSMutableArray *historyData;
 @property (strong, nonatomic) KalmanFilter *kalmanFilter;
-@property (strong, nonatomic) ParticleFilter *particleFilter;
 
 - (BluetoothDevice *)initWithUUID:(NSString *)uuid RSSI:(NSNumber *)rssi;
 - (float)operateKalmanFilterWithObservation:(float)observation;
-- (float)operateParticleFilterWithObservation:(float)observation;
++ (float)rssi2distance:(float)rssi;
++ (float)distance2rssi:(float)dist;
 
 @end

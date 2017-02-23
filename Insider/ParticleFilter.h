@@ -17,13 +17,15 @@
 @property (assign, nonatomic) int population;
 @property (strong, nonatomic) NSMutableArray *states;
 @property (strong, nonatomic) NSMutableArray *weights;
-@property (assign, nonatomic) float center;
+@property (assign, nonatomic) float centerX;
+@property (assign, nonatomic) float centerY;
 @property (assign, nonatomic) float Q;
 @property (assign, nonatomic) float R;
 @property (assign, nonatomic) float den;
+// worldWidth and centerX will not be used in a 1-dimension filter
 
 - (ParticleFilter *)initWithDimension:(int)dimension worldWidth:(float)width worldHeight:(float)height population:(int)population Q:(float)q R:(float)r;
 - (float)filterWithObservation:(float)observation;
-- (float)filterWithObservationX:(float)x Y:(float)y;
+- (NSArray *)filterWithObservationX:(float)x Y:(float)y;
 
 @end

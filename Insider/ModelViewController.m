@@ -97,19 +97,16 @@
     
     self.rawData = [[NSMutableArray alloc] initWithCapacity:CHART_CAPACITY];
     self.KalmanData = [[NSMutableArray alloc] initWithCapacity:CHART_CAPACITY];
-    self.ParticleData = [[NSMutableArray alloc] initWithCapacity:CHART_CAPACITY];
     
     for (int i = 0; i < CHART_CAPACITY; i++) {
         [self.rawData addObject:@(CHART_INIT_VALUE)];
         [self.KalmanData addObject:@(CHART_INIT_VALUE)];
-        [self.ParticleData addObject:@(CHART_INIT_VALUE)];
     }
 }
 
 - (void)initChart {
     PNLineChartData *data1 = [self chartWithR:52.0 g:152.0 b:219.0 array:self.rawData];
     PNLineChartData *data2 = [self chartWithR:231.0 g:76.0 b:60.0 array:self.KalmanData];
-    PNLineChartData *data3 = [self chartWithR:241.0 g:196.0 b:15.0 array:self.ParticleData];
     
     self.lineChart = [[PNLineChart alloc] initWithFrame:CGRectMake(0, 0, self.chartView.frame.size.width, self.chartView.frame.size.height)];
     self.lineChart.showYGridLines = YES;
@@ -122,7 +119,7 @@
     self.lineChart.yFixedValueMax = RSSI_MAXIMUM;
     self.lineChart.yFixedValueMin = RSSI_MINIMUM;
     self.lineChart.displayAnimated = NO;
-    self.lineChart.chartData = @[data1, data2, data3];
+    self.lineChart.chartData = @[data1, data2];
     
     [self.lineChart strokeChart];
     [self.chartView addSubview:self.lineChart];
@@ -244,7 +241,6 @@
             if (self.isCharting && [uuidString isEqualToString:self.beingSampledBeacon.deviceUUID]) {
                 [self.rawData removeObjectAtIndex:0];
                 [self.KalmanData removeObjectAtIndex:0];
-                [self.ParticleData removeObjectAtIndex:0];
 
                 if (!self.beingSampledBeacon.kalmanFilter) {
                     self.beingSampledBeacon.kalmanFilter = [[KalmanFilter alloc]
@@ -252,28 +248,17 @@
                                                                     R:self.kalman_R
                                                                    X0:RSSI.floatValue
                                                                    P0:DEFAULT_P0];
-                    
-                    self.beingSampledBeacon.particleFilter = [[ParticleFilter alloc]
-                                                              initWithDimension:1
-                                                                     worldWidth:0
-                                                                    worldHeight:-100
-                                                                     population:DEFAULT_POPULATION
-                                                                              Q:self.particle_Q
-                                                                              R:self.particle_R];
+                } else {
+                    [self.beingSampledBeacon operateKalmanFilterWithObservation:RSSI.floatValue];
                 }
-                
-                [self.beingSampledBeacon operateKalmanFilterWithObservation:RSSI.floatValue];
-                [self.beingSampledBeacon operateParticleFilterWithObservation:RSSI.floatValue];
                 
                 [self.rawData addObject:RSSI];
                 [self.KalmanData addObject:@(self.beingSampledBeacon.kalmanFilter.X)];
-                [self.ParticleData addObject:@(self.beingSampledBeacon.particleFilter.center)];
                 
                 PNLineChartData *data1 = [self chartWithR:52.0 g:152.0 b:219.0 array:self.rawData];
                 PNLineChartData *data2 = [self chartWithR:231.0 g:76.0 b:60.0 array:self.KalmanData];
-                PNLineChartData *data3 = [self chartWithR:241.0 g:196.0 b:15.0 array:self.ParticleData];
                 
-                [self.lineChart updateChartData:@[data1, data2, data3] withAnimation:NO];
+                [self.lineChart updateChartData:@[data1, data2] withAnimation:NO];
             }
         }
     }
@@ -320,6 +305,8 @@
                 cell.textLabel.text = textBeacon2;
             } else if ([device.deviceUUID isEqualToString:UUID3]) {
                 cell.textLabel.text = textBeacon3;
+            } else if ([device.deviceUUID isEqualToString:UUID4]) {
+                cell.textLabel.text = textBeacon4;
             } else {
                 cell.textLabel.text = device.deviceUUID;
             }
@@ -351,17 +338,15 @@
     NSString *selected = [[[tableView cellForRowAtIndexPath:indexPath] textLabel] text];
     
     if (![selected isEqualToString:self.beaconName.text]) {
-        if ([selected isEqualToString:textBeacon1] || [selected isEqualToString:textBeacon2] || [selected isEqualToString:textBeacon3]) {
+        if ([selected isEqualToString:textBeacon1] || [selected isEqualToString:textBeacon2] || [selected isEqualToString:textBeacon3] || [selected isEqualToString:textBeacon4]) {
             self.isCharting = YES;
             
             [self.rawData removeAllObjects];
             [self.KalmanData removeAllObjects];
-            [self.ParticleData removeAllObjects];
             
             for (int i = 0; i < CHART_CAPACITY; i++) {
                 [self.rawData addObject:@(CHART_INIT_VALUE)];
                 [self.KalmanData addObject:@(CHART_INIT_VALUE)];
-                [self.ParticleData addObject:@(CHART_INIT_VALUE)];
             }
         } else {
             self.isCharting = NO;

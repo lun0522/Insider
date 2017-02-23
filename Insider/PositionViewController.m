@@ -99,7 +99,7 @@
     if (RSSI.intValue <= RSSI_MAXIMUM && RSSI.intValue >= RSSI_MINIMUM) {
         NSString *uuidString = peripheral.identifier.UUIDString;
         
-        if ([uuidString isEqualToString:UUID1] || [uuidString isEqualToString:UUID2] || [uuidString isEqualToString:UUID3]) {
+        if ([uuidString isEqualToString:UUID1] || [uuidString isEqualToString:UUID2] || [uuidString isEqualToString:UUID3] || [uuidString isEqualToString:UUID4]) {
             if (![self.beaconsUUID containsObject:uuidString]) {
                 [self.beaconsUUID addObject:uuidString];
                 
@@ -109,6 +109,7 @@
                                                                     R:self.kalman_R
                                                                    X0:RSSI.floatValue
                                                                    P0:DEFAULT_P0];
+                [beacon operateKalmanFilterWithObservation:RSSI.floatValue];
                 
                 if ([uuidString isEqualToString:UUID1]) {
                     beacon.x = @(x1);
@@ -123,6 +124,11 @@
                 if ([uuidString isEqualToString:UUID3]) {
                     beacon.x = @(x3);
                     beacon.y = @(y3);
+                }
+                
+                if ([uuidString isEqualToString:UUID4]) {
+                    beacon.x = @(x4);
+                    beacon.y = @(y4);
                 }
                 
                 [self.beaconsList addObject:beacon];
@@ -142,7 +148,7 @@
                     [self displayDistance:distance onIndex:2];
                 }
                 
-                if ([uuidString isEqualToString:UUID3]) {
+                if ([uuidString isEqualToString:UUID3] || [uuidString isEqualToString:UUID4]) {
                     [self displayDistance:distance onIndex:3];
                 }
             }
@@ -184,8 +190,8 @@
 - (void)positioning {
     if ([self.beaconsUUID count] >= 3) {
         NSArray *position = [Trilateration trilaterateWithBeacons:self.beaconsList];
-        float xval = [[position objectAtIndex:0] floatValue] * 100;
-        float yval = [[position objectAtIndex:1] floatValue] * 100;
+        float xval = [[position objectAtIndex:0] floatValue];
+        float yval = [[position objectAtIndex:1] floatValue];
         
         if (circle1) {
             [circle1 removeFromSuperlayer];
@@ -201,30 +207,29 @@
         BluetoothDevice *beacon2 = [self.beaconsList objectAtIndex:1];
         BluetoothDevice *beacon3 = [self.beaconsList objectAtIndex:2];
         
-        [self drawCircleX:beacon1.x.floatValue*100 Y:beacon1.y.floatValue*100 R:beacon1.distance.floatValue*100 Layer:circle1];
-        [self drawCircleX:beacon2.x.floatValue*100 Y:beacon2.y.floatValue*100 R:beacon2.distance.floatValue*100 Layer:circle2];
-        [self drawCircleX:beacon3.x.floatValue*100 Y:beacon3.y.floatValue*100 R:beacon3.distance.floatValue*100 Layer:circle3];
+        [self drawCircleX:beacon1.x.floatValue * MAP_SCALE Y:beacon1.y.floatValue * MAP_SCALE R:beacon1.distance.floatValue * MAP_SCALE Layer:circle1];
+        [self drawCircleX:beacon2.x.floatValue * MAP_SCALE Y:beacon2.y.floatValue * MAP_SCALE R:beacon2.distance.floatValue * MAP_SCALE Layer:circle2];
+        [self drawCircleX:beacon3.x.floatValue  *MAP_SCALE Y:beacon3.y.floatValue * MAP_SCALE R:beacon3.distance.floatValue * MAP_SCALE Layer:circle3];
         
-        if (!self.xFilter) {
-            self.xFilter = [[KalmanFilter alloc] initWithQ:self.kalman_Q
-                                                         R:self.kalman_R
-                                                        X0:xval
-                                                        P0:DEFAULT_P0];
-            self.yFilter = [[KalmanFilter alloc] initWithQ:self.kalman_Q
-                                                         R:self.kalman_R
-                                                        X0:yval
-                                                        P0:DEFAULT_P0];
+        if (!self.particleFilter) {
+            self.particleFilter = [[ParticleFilter alloc] initWithDimension:2
+                                                                 worldWidth:MAP_WIDTH / MAP_SCALE
+                                                                worldHeight:MAP_HEIGHT / MAP_SCALE
+                                                                 population:DEFAULT_POPULATION
+                                                                          Q:self.particle_Q
+                                                                          R:self.particle_R];
             
             lastFilteredX = xval;
             lastFilteredY = yval;
         } else {
-            float newFilteredX = [self.xFilter filterWithObservation:xval];
-            float newFilteredY = [self.yFilter filterWithObservation:yval];
-            
+            NSArray *filterResult = [self.particleFilter filterWithObservationX:xval Y:yval];
+            float newFilteredX = [(NSNumber *)filterResult[0] floatValue];
+            float newFilteredY = [(NSNumber *)filterResult[1] floatValue];
+
             if (enableTracking) {
                 UIBezierPath *path = [UIBezierPath bezierPath];
-                [path moveToPoint:CGPointMake(lastFilteredX, lastFilteredY)];
-                [path addLineToPoint:CGPointMake(newFilteredX, newFilteredY)];
+                [path moveToPoint:CGPointMake(lastFilteredX * MAP_SCALE, lastFilteredY * MAP_SCALE)];
+                [path addLineToPoint:CGPointMake(newFilteredX * MAP_SCALE, newFilteredY * MAP_SCALE)];
                 CAShapeLayer *shapeLayer = [CAShapeLayer layer];
                 shapeLayer.path = [path CGPath];
                 shapeLayer.strokeColor = [[UIColor redColor] CGColor];
@@ -236,12 +241,12 @@
             lastFilteredY = newFilteredY;
         }
         
-        self.dot.center = CGPointMake(xval, yval);
+        self.dot.center = CGPointMake(xval * MAP_SCALE, yval * MAP_SCALE);
         
         if (lastX >= 0 && enableTracking) {
             UIBezierPath *path = [UIBezierPath bezierPath];
-            [path moveToPoint:CGPointMake(lastX, lastY)];
-            [path addLineToPoint:CGPointMake(xval, yval)];
+            [path moveToPoint:CGPointMake(lastX * MAP_SCALE, lastY * MAP_SCALE)];
+            [path addLineToPoint:CGPointMake(xval * MAP_SCALE, yval * MAP_SCALE)];
             CAShapeLayer *shapeLayer = [CAShapeLayer layer];
             shapeLayer.path = [path CGPath];
             shapeLayer.strokeColor = [[UIColor blueColor] CGColor];

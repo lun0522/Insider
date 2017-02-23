@@ -18,14 +18,23 @@
 #define UUID1                   @"68EB5AEF-AD81-4F3B-A3CD-037A98DA2F1E"
 #define UUID2                   @"0E8472D4-1999-4020-8B4C-76F90FDB4F7E"
 #define UUID3                   @"B5313F42-11E6-4BE6-9C87-754DECF18935"
+#define UUID4                   @"FA2E0068-08F2-4DE7-9DE4-DE7C40CA0DD7"
 #define textBeacon1                                  @"insiderBeacon-1"
 #define textBeacon2                                  @"insiderBeacon-2"
 #define textBeacon3                                  @"insiderBeacon-3"
+#define textBeacon4                                  @"insiderBeacon-4"
 #define x1                                                          0.5
 #define y1                                                          0.0
 #define x2                                                          3.3
 #define y2                                                          1.5
 #define x3                                                          1.0
 #define y3                                                          4.2
+#define x4                                                          1.0
+#define y4                                                          4.2
+#define val_a                                                    -57.59
+#define val_b                                                    -25.42
+#define MAP_WIDTH                                                   330
+#define MAP_HEIGHT                                                  420
+#define MAP_SCALE                                                   100
 
 #endif /* GlobalDefinition_pch */

@@ -27,11 +27,12 @@
 @property (strong, nonatomic) NSMutableArray *beaconsUUID;
 @property (assign, nonatomic) float kalman_Q;
 @property (assign, nonatomic) float kalman_R;
+@property (assign, nonatomic) float particle_Q;
+@property (assign, nonatomic) float particle_R;
 
 @property (strong, nonatomic) CBCentralManager *bluetoothManager;
 @property (retain, nonatomic) NSTimer *timer;
 @property (strong, nonatomic) UIButton *dot;
-@property (strong, nonatomic) KalmanFilter *xFilter;
-@property (strong, nonatomic) KalmanFilter *yFilter;
+@property (strong, nonatomic) ParticleFilter *particleFilter;
 
 @end

@@ -13,7 +13,7 @@
 #import "PNChart.h"
 
 #define CHART_CAPACITY         80
-#define CHART_INIT_VALUE    -30.0
+#define CHART_INIT_VALUE    -60.0
 
 typedef NS_ENUM(NSInteger, StopReason) {
     bluetoothShutDown,
@@ -41,11 +41,8 @@ typedef NS_ENUM(NSInteger, StopReason) {
 @property (strong, nonatomic) NSMutableArray *sampledUUID;
 @property (strong, nonatomic) NSMutableArray *rawData;
 @property (strong, nonatomic) NSMutableArray *KalmanData;
-@property (strong, nonatomic) NSMutableArray *ParticleData;
 @property (assign, nonatomic) float kalman_Q;
 @property (assign, nonatomic) float kalman_R;
-@property (assign, nonatomic) float particle_Q;
-@property (assign, nonatomic) float particle_R;
 @property (assign, nonatomic) BOOL isDistance;
 @property (assign, nonatomic) BOOL isSampling;
 @property (assign, nonatomic) BOOL isCharting;

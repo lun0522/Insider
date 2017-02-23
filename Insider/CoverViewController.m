@@ -20,8 +20,8 @@
     self.KF_Q.text = @"0.000001";
     self.KF_R.text = @"0.0004";
     
-    self.PF_Q.text = @"0.4";
-    self.PF_R.text = @"10";
+    self.PF_Q.text = @"0.1";
+    self.PF_R.text = @"1";
 }
 
 - (void)didReceiveMemoryWarning {
@@ -34,8 +34,6 @@
     
     mvc.kalman_Q = [self.KF_Q.text floatValue];
     mvc.kalman_R = [self.KF_R.text floatValue];
-    mvc.particle_Q = [self.PF_Q.text floatValue];
-    mvc.particle_R = [self.PF_R.text floatValue];
     
     [self presentViewController:mvc animated:YES completion:nil];
 }
@@ -45,6 +43,8 @@
     
     pvc.kalman_Q = [self.KF_Q.text floatValue];
     pvc.kalman_R = [self.KF_R.text floatValue];
+    pvc.particle_Q = [self.PF_Q.text floatValue];
+    pvc.particle_R = [self.PF_R.text floatValue];
     
     [self presentViewController:pvc animated:YES completion:nil];
 }
