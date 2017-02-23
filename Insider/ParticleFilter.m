@@ -61,14 +61,7 @@
     _timestamp = [[NSDate date] timeIntervalSince1970] * 1000;
     
     for (int i = 0; i < _population; i++) {
-        // Uniform distribution generator. See http://stackoverflow.com/a/12948538
-        float u1 = (float)arc4random() / UINT32_MAX;      // uniform distribution
-        float u2 = (float)arc4random() / UINT32_MAX;      // uniform distribution
-        float f1 = sqrt(-2 * log(u1));
-        float f2 = 2 * M_PI * u2;
-        float g1 = f1 * cos(f2);       // gaussian distribution
-        
-        float newState = [(NSNumber *)[_states objectAtIndex:i] floatValue] + _Q * g1;
+        float newState = [(NSNumber *)[_states objectAtIndex:i] floatValue] + _Q * [self generateGaussian];
         [_states replaceObjectAtIndex:i withObject:@(newState)];
         [_weights replaceObjectAtIndex:i withObject:@(exp(- pow(newState - observation, 2) / (2 * _R)) / _den)];
     }
@@ -105,23 +98,14 @@
     _timestamp = [[NSDate date] timeIntervalSince1970] * 1000;
     
     for (int i = 0; i < _population; i++) {
-        // Uniform distribution generator. See http://stackoverflow.com/a/12948538
-        float u1 = (float)arc4random() / UINT32_MAX;      // uniform distribution
-        float u2 = (float)arc4random() / UINT32_MAX;      // uniform distribution
-        float f1 = sqrt(-2 * log(u1));
-        float f2 = 2 * M_PI * u2;
-        float gd1 = f1 * cos(f2);       // gaussian distribution
-        float gd2 = f1 * sin(f2);       // gaussian distribution
-        
         NSArray *oldState = [_states objectAtIndex:i];
         float oldX = [(NSNumber *)oldState[0] floatValue];
         float oldY = [(NSNumber *)oldState[1] floatValue];
-        float newX = oldX + gd1;
-        float newY = oldY + gd2;
+        float newX = oldX + [self generateGaussian];
+        float newY = oldY + [self generateGaussian];
         
         [_states replaceObjectAtIndex:i withObject:[[NSArray alloc] initWithObjects:@(newX), @(newY), nil]];
-        [_weights replaceObjectAtIndex:i withObject:@(exp(- (pow(newX - oldX, 2) + pow(newY - oldY, 2)) / (2 * _R)) / _den)];
-//        NSLog(@"%f",exp(- (pow(newX - oldX, 2) + pow(newY - oldY, 2)) / (2 * _R)) / _den);
+        [_weights replaceObjectAtIndex:i withObject:@(exp(- (pow(newX - x, 2) + pow(newY - y, 2)) / (2 * _R)) / _den)];
     }
     
     float sum_weights = [self sum:_weights];
@@ -148,8 +132,6 @@
     NSArray *center = [self mean2D:_states];
     _centerX = [(NSNumber *)center[0] floatValue];
     _centerY = [(NSNumber *)center[1] floatValue];
-    
-    NSLog(@"input: %f output: %f",x,_centerX);
     
     return center;
 }
@@ -193,6 +175,16 @@
     }
     
     return maximum;
+}
+
+- (float)generateGaussian {
+    // Gaussian distribution generator. See http://stackoverflow.com/a/12948538
+    float u1 = (float)arc4random() / UINT32_MAX;
+    float u2 = (float)arc4random() / UINT32_MAX;
+    float f1 = sqrt(-2 * log(u1));
+    float f2 = 2 * M_PI * u2;
+    
+    return f1 * cos(f2);
 }
 
 @end

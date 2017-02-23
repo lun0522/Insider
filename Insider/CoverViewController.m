@@ -21,7 +21,7 @@
     self.KF_R.text = @"0.0004";
     
     self.PF_Q.text = @"0.1";
-    self.PF_R.text = @"1";
+    self.PF_R.text = @"0.01";
 }
 
 - (void)didReceiveMemoryWarning {

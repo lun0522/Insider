@@ -13,6 +13,7 @@
 #import "Trilateration.h"
 
 #define enableTracking        1
+#define nonono                0
 
 @interface PositionViewController : UIViewController <CBCentralManagerDelegate>
 
@@ -34,5 +35,7 @@
 @property (retain, nonatomic) NSTimer *timer;
 @property (strong, nonatomic) UIButton *dot;
 @property (strong, nonatomic) ParticleFilter *particleFilter;
+@property (strong, nonatomic) ParticleFilter *xFilter;
+@property (strong, nonatomic) ParticleFilter *yFilter;
 
 @end

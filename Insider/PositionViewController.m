@@ -211,20 +211,45 @@
         [self drawCircleX:beacon2.x.floatValue * MAP_SCALE Y:beacon2.y.floatValue * MAP_SCALE R:beacon2.distance.floatValue * MAP_SCALE Layer:circle2];
         [self drawCircleX:beacon3.x.floatValue  *MAP_SCALE Y:beacon3.y.floatValue * MAP_SCALE R:beacon3.distance.floatValue * MAP_SCALE Layer:circle3];
         
-        if (!self.particleFilter) {
-            self.particleFilter = [[ParticleFilter alloc] initWithDimension:2
-                                                                 worldWidth:MAP_WIDTH / MAP_SCALE
-                                                                worldHeight:MAP_HEIGHT / MAP_SCALE
-                                                                 population:DEFAULT_POPULATION
-                                                                          Q:self.particle_Q
-                                                                          R:self.particle_R];
+        if (!self.xFilter && !self.particleFilter) {
+            if (nonono) {
+                self.xFilter = [[ParticleFilter alloc] initWithDimension:1
+                                                              worldWidth:0
+                                                             worldHeight:MAP_WIDTH / MAP_SCALE
+                                                              population:DEFAULT_POPULATION
+                                                                       Q:self.particle_Q
+                                                                       R:self.particle_R];
+                
+                self.yFilter = [[ParticleFilter alloc] initWithDimension:1
+                                                              worldWidth:0
+                                                             worldHeight:MAP_HEIGHT / MAP_SCALE
+                                                              population:DEFAULT_POPULATION
+                                                                       Q:self.particle_Q
+                                                                       R:self.particle_R];
+            } else {
+                self.particleFilter = [[ParticleFilter alloc] initWithDimension:2
+                                                                     worldWidth:MAP_WIDTH / MAP_SCALE
+                                                                    worldHeight:MAP_HEIGHT / MAP_SCALE
+                                                                     population:DEFAULT_POPULATION
+                                                                              Q:self.particle_Q
+                                                                              R:self.particle_R];
+            }
             
             lastFilteredX = xval;
             lastFilteredY = yval;
         } else {
-            NSArray *filterResult = [self.particleFilter filterWithObservationX:xval Y:yval];
-            float newFilteredX = [(NSNumber *)filterResult[0] floatValue];
-            float newFilteredY = [(NSNumber *)filterResult[1] floatValue];
+            float newFilteredX;
+            float newFilteredY;
+            
+            if (nonono) {
+                newFilteredX = [self.xFilter filterWithObservation:xval];
+                newFilteredY = [self.yFilter filterWithObservation:yval];
+            } else {
+                NSArray *filterResult = [self.particleFilter filterWithObservationX:xval Y:yval];
+                newFilteredX = [(NSNumber *)filterResult[0] floatValue];
+                newFilteredY = [(NSNumber *)filterResult[1] floatValue];
+
+            }
 
             if (enableTracking) {
                 UIBezierPath *path = [UIBezierPath bezierPath];
