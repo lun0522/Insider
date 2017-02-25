@@ -74,11 +74,21 @@
 }
 
 - (void)initDot {
+    if (self.isTwoD) {
+        self.particles = [[NSMutableArray alloc] initWithCapacity:DEFAULT_POPULATION];
+        for (int i = 0; i < DEFAULT_POPULATION; i++) {
+            UIButton *particle = [UIButton buttonWithType:UIButtonTypeCustom];
+            [particle setImage:[UIImage imageNamed:@"particle.png"] forState:UIControlStateNormal];
+            particle.frame = CGRectMake(0, 0, 3, 3);
+            [self.particles addObject:particle];
+            [self.topLayer addSubview:particle];
+        }
+    }
+    
     self.dot = [UIButton buttonWithType:UIButtonTypeCustom];
     [self.dot setImage:[UIImage imageNamed:@"dot.png"] forState:UIControlStateNormal];
     self.dot.frame = CGRectMake(0, 0, 20, 20);
     [self.topLayer addSubview:self.dot];
-//    self.dot.hidden = YES;
 }
 
 #pragma mark - Bluetooth
@@ -212,7 +222,7 @@
         [self drawCircleX:beacon3.x.floatValue  *MAP_SCALE Y:beacon3.y.floatValue * MAP_SCALE R:beacon3.distance.floatValue * MAP_SCALE Layer:circle3];
         
         if (!self.xFilter && !self.particleFilter) {
-            if (nonono) {
+            if (!self.isTwoD) {
                 self.xFilter = [[ParticleFilter alloc] initWithDimension:1
                                                               worldWidth:0
                                                              worldHeight:MAP_WIDTH / MAP_SCALE
@@ -241,14 +251,24 @@
             float newFilteredX;
             float newFilteredY;
             
-            if (nonono) {
+            if (!self.isTwoD) {
                 newFilteredX = [self.xFilter filterWithObservation:xval];
                 newFilteredY = [self.yFilter filterWithObservation:yval];
             } else {
-                NSArray *filterResult = [self.particleFilter filterWithObservationX:xval Y:yval];
-                newFilteredX = [(NSNumber *)filterResult[0] floatValue];
-                newFilteredY = [(NSNumber *)filterResult[1] floatValue];
+//                NSArray *filterResult = [self.particleFilter filterWithObservationX:xval Y:yval];
+//                newFilteredX = [(NSNumber *)filterResult[0] floatValue];
+//                newFilteredY = [(NSNumber *)filterResult[1] floatValue];
 
+                NSMutableArray *filterResult = [self.particleFilter filterWithObservationX:xval Y:yval];
+                for (int i = 0; i < DEFAULT_POPULATION; i++) {
+                    NSArray *particlePosition = (NSArray *)[filterResult objectAtIndex:i];
+                    UIButton *particle = (UIButton *)[self.particles objectAtIndex:i];
+                    particle.center = CGPointMake([(NSNumber *)particlePosition[0] floatValue] * MAP_SCALE, [(NSNumber *)particlePosition[1] floatValue] * MAP_SCALE);
+                }
+                
+                NSArray *meanResult = [self mean2D:filterResult];
+                newFilteredX = [(NSNumber *)meanResult[0] floatValue];
+                newFilteredY = [(NSNumber *)meanResult[1] floatValue];
             }
 
             if (enableTracking) {
@@ -301,6 +321,19 @@
     layer.lineWidth = 2.0f;
     layer.lineCap=kCALineCapRound;
     [self.map.layer addSublayer:layer];
+}
+
+- (NSArray *)mean2D:(NSMutableArray *)data {
+    float sumX = 0;
+    float sumY = 0;
+    
+    for (int i = 0; i < [data count]; i++) {
+        NSArray *element = [data objectAtIndex:i];
+        sumX += [(NSNumber *)element[0] floatValue];
+        sumY += [(NSNumber *)element[1] floatValue];
+    }
+    
+    return [[NSArray alloc] initWithObjects:@(sumX / [data count]), @(sumY / [data count]), nil];
 }
 
 - (void)dismiss {

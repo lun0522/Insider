@@ -21,7 +21,7 @@
     self.KF_R.text = @"0.0004";
     
     self.PF_Q.text = @"0.1";
-    self.PF_R.text = @"0.01";
+    self.PF_R.text = @"0.05";
 }
 
 - (void)didReceiveMemoryWarning {
@@ -41,6 +41,7 @@
 - (IBAction)presentPosition:(id)sender {
     PositionViewController *pvc = [self.storyboard instantiateViewControllerWithIdentifier:@"position"];
     
+    pvc.isTwoD = (self.dimensionSwitch.selectedSegmentIndex == 1);
     pvc.kalman_Q = [self.KF_Q.text floatValue];
     pvc.kalman_R = [self.KF_R.text floatValue];
     pvc.particle_Q = [self.PF_Q.text floatValue];

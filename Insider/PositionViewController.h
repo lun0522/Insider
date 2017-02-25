@@ -12,8 +12,7 @@
 #import "BluetoothDevice.h"
 #import "Trilateration.h"
 
-#define enableTracking        1
-#define nonono                0
+#define enableTracking        0
 
 @interface PositionViewController : UIViewController <CBCentralManagerDelegate>
 
@@ -26,10 +25,12 @@
 
 @property (strong, nonatomic) NSMutableArray *beaconsList;
 @property (strong, nonatomic) NSMutableArray *beaconsUUID;
+@property (strong, nonatomic) NSMutableArray *particles;
 @property (assign, nonatomic) float kalman_Q;
 @property (assign, nonatomic) float kalman_R;
 @property (assign, nonatomic) float particle_Q;
 @property (assign, nonatomic) float particle_R;
+@property (assign, nonatomic) BOOL isTwoD;
 
 @property (strong, nonatomic) CBCentralManager *bluetoothManager;
 @property (retain, nonatomic) NSTimer *timer;

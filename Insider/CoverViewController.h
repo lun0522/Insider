@@ -12,6 +12,8 @@
 
 @interface CoverViewController : UIViewController
 
+@property (weak, nonatomic) IBOutlet UISegmentedControl *dimensionSwitch;
+
 @property (weak, nonatomic) IBOutlet UITextField *KF_Q;
 @property (weak, nonatomic) IBOutlet UITextField *KF_R;
 

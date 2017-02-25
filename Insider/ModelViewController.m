@@ -192,7 +192,7 @@
         if (self.isSampling) {
             self.isSampling = NO;
             [self.samplingProgress removeFromSuperview];
-            [self stopSamplingAnimation:bluetoothShutDown];
+            [self stopSamplingAnimation:bluetoothShutDown detail:nil];
         }
     }
     
@@ -456,15 +456,15 @@
                                             if(error != nil){
                                                 NSLog(@"Failed in filtering: %@",error);
                                                 
-                                                [self stopSamplingAnimation:filterFailed];
+                                                [self stopSamplingAnimation:filterFailed detail:nil];
                                             } else {
-                                                [self stopSamplingAnimation:accomplished];
+                                                [self stopSamplingAnimation:accomplished detail:[NSString stringWithFormat:@"\nmean: %f\nvariance: %f",[[object objectForKey:@"mean"] floatValue], [[object objectForKey:@"variance"] floatValue]]];
                                             }
                                         }];
         } else {
             NSLog(@"Failed in uploading: %@",error);
             
-            [self stopSamplingAnimation:uploadFailed];
+            [self stopSamplingAnimation:uploadFailed detail:nil];
         }
     }];
 }
@@ -491,7 +491,7 @@
     }];
 }
 
-- (void)stopSamplingAnimation:(NSInteger)reason {
+- (void)stopSamplingAnimation:(NSInteger)reason detail:(NSString *)message {
     self.view.userInteractionEnabled = YES;
     
     [self.samplingIndicator stopAnimating];
@@ -522,6 +522,7 @@
                 break;
             case accomplished:
                 alert.title = @"Successful!";
+                alert.message = message;
                 break;
             default:
                 break;

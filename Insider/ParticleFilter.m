@@ -129,11 +129,11 @@
         [_states replaceObjectAtIndex:i withObject:[_states objectAtIndex:index]];
     }
     
-    NSArray *center = [self mean2D:_states];
-    _centerX = [(NSNumber *)center[0] floatValue];
-    _centerY = [(NSNumber *)center[1] floatValue];
+//    NSArray *center = [self mean2D:_states];
+//    _centerX = [(NSNumber *)center[0] floatValue];
+//    _centerY = [(NSNumber *)center[1] floatValue];
     
-    return center;
+    return _states;
 }
 
 - (float)sum:(NSMutableArray *)data {

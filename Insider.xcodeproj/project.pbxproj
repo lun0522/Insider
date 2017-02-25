@@ -15,6 +15,7 @@
 		BD58E9381E2E611B0085EFBC /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BD58E9361E2E611B0085EFBC /* LaunchScreen.storyboard */; };
 		BD58E9431E2E611B0085EFBC /* InsiderTests.m in Sources */ = {isa = PBXBuildFile; fileRef = BD58E9421E2E611B0085EFBC /* InsiderTests.m */; };
 		BD58E94E1E2E611B0085EFBC /* InsiderUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = BD58E94D1E2E611B0085EFBC /* InsiderUITests.m */; };
+		BDA4C2231E612CD20079CC10 /* particle.png in Resources */ = {isa = PBXBuildFile; fileRef = BDA4C2221E612CD20079CC10 /* particle.png */; };
 		BDEC63971E5D370800EF436C /* BluetoothDevice.m in Sources */ = {isa = PBXBuildFile; fileRef = BDEC63861E5D370800EF436C /* BluetoothDevice.m */; };
 		BDEC63981E5D370800EF436C /* CoverViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = BDEC63881E5D370800EF436C /* CoverViewController.m */; };
 		BDEC63991E5D370800EF436C /* dot.png in Resources */ = {isa = PBXBuildFile; fileRef = BDEC63891E5D370800EF436C /* dot.png */; };
@@ -62,6 +63,7 @@
 		BD58E9491E2E611B0085EFBC /* InsiderUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = InsiderUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD58E94D1E2E611B0085EFBC /* InsiderUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = InsiderUITests.m; sourceTree = "<group>"; };
 		BD58E94F1E2E611B0085EFBC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BDA4C2221E612CD20079CC10 /* particle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = particle.png; sourceTree = "<group>"; };
 		BDEC63851E5D370800EF436C /* BluetoothDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BluetoothDevice.h; sourceTree = "<group>"; };
 		BDEC63861E5D370800EF436C /* BluetoothDevice.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BluetoothDevice.m; sourceTree = "<group>"; };
 		BDEC63871E5D370800EF436C /* CoverViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CoverViewController.h; sourceTree = "<group>"; };
@@ -198,6 +200,7 @@
 			children = (
 				BDEC63941E5D370800EF436C /* tranparent.png */,
 				BDEC63891E5D370800EF436C /* dot.png */,
+				BDA4C2221E612CD20079CC10 /* particle.png */,
 				BDEC638A1E5D370800EF436C /* floor.png */,
 			);
 			name = Image;
@@ -345,6 +348,7 @@
 				BDEC63991E5D370800EF436C /* dot.png in Resources */,
 				BDEC639F1E5D370800EF436C /* tranparent.png in Resources */,
 				BD58E9351E2E611B0085EFBC /* Assets.xcassets in Resources */,
+				BDA4C2231E612CD20079CC10 /* particle.png in Resources */,
 				BDEC639A1E5D370800EF436C /* floor.png in Resources */,
 				BD58E9331E2E611B0085EFBC /* Main.storyboard in Resources */,
 			);
