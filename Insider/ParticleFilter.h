@@ -26,6 +26,6 @@
 
 - (ParticleFilter *)initWithDimension:(int)dimension worldWidth:(float)width worldHeight:(float)height population:(int)population Q:(float)q R:(float)r;
 - (float)filterWithObservation:(float)observation;
-- (NSMutableArray *)filterWithObservationX:(float)x Y:(float)y;
+- (NSMutableDictionary *)filterWithObservationX:(float)x Y:(float)y;
 
 @end

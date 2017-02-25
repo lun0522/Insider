@@ -92,7 +92,7 @@
     return _centerY;
 }
 
-- (NSArray *)filterWithObservationX:(float)x Y:(float)y {
+- (NSMutableDictionary *)filterWithObservationX:(float)x Y:(float)y {
     NSAssert(_dimension == 2, @"Error in dimension!");
     
     _timestamp = [[NSDate date] timeIntervalSince1970] * 1000;
@@ -129,11 +129,11 @@
         [_states replaceObjectAtIndex:i withObject:[_states objectAtIndex:index]];
     }
     
-//    NSArray *center = [self mean2D:_states];
-//    _centerX = [(NSNumber *)center[0] floatValue];
-//    _centerY = [(NSNumber *)center[1] floatValue];
+    NSArray *center = [self mean2D:_states];
+    _centerX = [(NSNumber *)center[0] floatValue];
+    _centerY = [(NSNumber *)center[1] floatValue];
     
-    return _states;
+    return [[NSMutableDictionary alloc] initWithObjects:@[_states, center] forKeys:@[@"particles", @"center"]];
 }
 
 - (float)sum:(NSMutableArray *)data {

@@ -255,20 +255,18 @@
                 newFilteredX = [self.xFilter filterWithObservation:xval];
                 newFilteredY = [self.yFilter filterWithObservation:yval];
             } else {
-//                NSArray *filterResult = [self.particleFilter filterWithObservationX:xval Y:yval];
-//                newFilteredX = [(NSNumber *)filterResult[0] floatValue];
-//                newFilteredY = [(NSNumber *)filterResult[1] floatValue];
-
-                NSMutableArray *filterResult = [self.particleFilter filterWithObservationX:xval Y:yval];
+                NSMutableDictionary *filterResult = [self.particleFilter filterWithObservationX:xval Y:yval];
+                
+                NSMutableArray *particles = [filterResult objectForKey:@"particles"];
                 for (int i = 0; i < DEFAULT_POPULATION; i++) {
-                    NSArray *particlePosition = (NSArray *)[filterResult objectAtIndex:i];
+                    NSArray *particlePosition = (NSArray *)[particles objectAtIndex:i];
                     UIButton *particle = (UIButton *)[self.particles objectAtIndex:i];
                     particle.center = CGPointMake([(NSNumber *)particlePosition[0] floatValue] * MAP_SCALE, [(NSNumber *)particlePosition[1] floatValue] * MAP_SCALE);
                 }
                 
-                NSArray *meanResult = [self mean2D:filterResult];
-                newFilteredX = [(NSNumber *)meanResult[0] floatValue];
-                newFilteredY = [(NSNumber *)meanResult[1] floatValue];
+                NSArray *center = [filterResult objectForKey:@"center"];
+                newFilteredX = [(NSNumber *)center[0] floatValue];
+                newFilteredY = [(NSNumber *)center[1] floatValue];
             }
 
             if (self.enableTracking) {
