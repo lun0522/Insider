@@ -271,7 +271,7 @@
                 newFilteredY = [(NSNumber *)meanResult[1] floatValue];
             }
 
-            if (enableTracking) {
+            if (self.enableTracking) {
                 UIBezierPath *path = [UIBezierPath bezierPath];
                 [path moveToPoint:CGPointMake(lastFilteredX * MAP_SCALE, lastFilteredY * MAP_SCALE)];
                 [path addLineToPoint:CGPointMake(newFilteredX * MAP_SCALE, newFilteredY * MAP_SCALE)];
@@ -288,7 +288,7 @@
         
         self.dot.center = CGPointMake(xval * MAP_SCALE, yval * MAP_SCALE);
         
-        if (lastX >= 0 && enableTracking) {
+        if (lastX >= 0 && self.enableTracking) {
             UIBezierPath *path = [UIBezierPath bezierPath];
             [path moveToPoint:CGPointMake(lastX * MAP_SCALE, lastY * MAP_SCALE)];
             [path addLineToPoint:CGPointMake(xval * MAP_SCALE, yval * MAP_SCALE)];

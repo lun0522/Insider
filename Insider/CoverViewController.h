@@ -20,6 +20,8 @@
 @property (weak, nonatomic) IBOutlet UITextField *PF_Q;
 @property (weak, nonatomic) IBOutlet UITextField *PF_R;
 
+@property (weak, nonatomic) IBOutlet UISwitch *trackingSwitch;
+
 - (IBAction)presentModel:(id)sender;
 - (IBAction)presentPosition:(id)sender;
 

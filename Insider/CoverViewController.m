@@ -22,6 +22,8 @@
     
     self.PF_Q.text = @"0.1";
     self.PF_R.text = @"0.05";
+    
+    [self.dimensionSwitch setSelectedSegmentIndex:1];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -46,6 +48,7 @@
     pvc.kalman_R = [self.KF_R.text floatValue];
     pvc.particle_Q = [self.PF_Q.text floatValue];
     pvc.particle_R = [self.PF_R.text floatValue];
+    pvc.enableTracking = [self.trackingSwitch isOn]? YES: NO;
     
     [self presentViewController:pvc animated:YES completion:nil];
 }

@@ -12,8 +12,6 @@
 #import "BluetoothDevice.h"
 #import "Trilateration.h"
 
-#define enableTracking        0
-
 @interface PositionViewController : UIViewController <CBCentralManagerDelegate>
 
 @property (weak, nonatomic) IBOutlet UILabel *beaconOne;
@@ -30,6 +28,7 @@
 @property (assign, nonatomic) float kalman_R;
 @property (assign, nonatomic) float particle_Q;
 @property (assign, nonatomic) float particle_R;
+@property (assign, nonatomic) BOOL enableTracking;
 @property (assign, nonatomic) BOOL isTwoD;
 
 @property (strong, nonatomic) CBCentralManager *bluetoothManager;
