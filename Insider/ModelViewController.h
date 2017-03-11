@@ -8,6 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import <CoreBluetooth/CoreBluetooth.h>
+#import <CoreMotion/CoreMotion.h>
 #import <AVOSCloud/AVOSCloud.h>
 #import <mach/mach_time.h>
 #import "BluetoothDevice.h"
@@ -55,6 +56,7 @@ typedef NS_ENUM(NSInteger, StopReason) {
 
 @property (strong, nonatomic) CBCentralManager *bluetoothManager;
 @property (strong, nonatomic) BluetoothDevice *beingSampledBeacon;
+@property (strong, nonatomic) CMMotionManager *motionManager;
 @property (retain, nonatomic) NSTimer *timer;
 @property (retain, nonatomic) UIVisualEffectView *blurEffect;
 @property (retain, nonatomic) UITextField *samplingText;

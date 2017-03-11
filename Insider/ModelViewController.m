@@ -25,7 +25,7 @@
     [self initTableView];
     [self initArray];
     [self initChart];
-    [self initBluetooth];
+    [self initManager];
     [self initTimer];
     [self initBlurEffect];
     [self initIndicator];
@@ -36,6 +36,7 @@
     [self stopScanning];
     [self.timer invalidate];
     self.timer = nil;
+    [self.motionManager stopDeviceMotionUpdates];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -138,8 +139,13 @@
     [self.chartView addSubview:self.lineChart];
 }
 
-- (void)initBluetooth {
+- (void)initManager {
     self.bluetoothManager = [[CBCentralManager alloc] initWithDelegate:self queue:nil];
+    self.motionManager = [[CMMotionManager alloc] init];
+    
+    if (self.motionManager.deviceMotionAvailable) {
+        [self.motionManager startDeviceMotionUpdates];
+    }
 }
 
 - (void)initTimer {
@@ -565,6 +571,9 @@
     
     [neuralTempData setObject:@(self.distX.text.floatValue) forKey:@"x"];
     [neuralTempData setObject:@(self.distY.text.floatValue) forKey:@"y"];
+    [neuralTempData setObject:@(self.motionManager.deviceMotion.attitude.roll) forKey:@"roll"];
+    [neuralTempData setObject:@(self.motionManager.deviceMotion.attitude.pitch) forKey:@"pitch"];
+    [neuralTempData setObject:@(self.motionManager.deviceMotion.attitude.yaw) forKey:@"yaw"];
     [neuralTempData setObject:sampledBeacons forKey:@"deviceUUID"];
     [neuralTempData setObject:data forKey:@"rawData"];
     
@@ -614,6 +623,7 @@
     self.isSampling = NO;
     self.isNeural = NO;
     [self.samplingProgress removeFromSuperview];
+    [self.cancelButton removeFromSuperview];
     [self stopSamplingAnimation:cancelled detail:nil];
 }
 
