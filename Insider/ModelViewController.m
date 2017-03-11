@@ -456,6 +456,7 @@
 - (void)normalUpload {
     self.samplingText.text = @"   Uploading...";
     [self.samplingProgress removeFromSuperview];
+    [self.cancelButton removeFromSuperview];
     
     NSNumberFormatter* numberFormatter = [[NSNumberFormatter alloc] init];
     [numberFormatter setNumberStyle:NSNumberFormatterDecimalStyle];
@@ -549,10 +550,11 @@
 - (void)neuralUpload {
     self.samplingText.text = @"   Uploading...";
     [self.samplingProgress removeFromSuperview];
+    [self.cancelButton removeFromSuperview];
     
     NSMutableArray *sampledBeacons = [[NSMutableArray alloc] init];
     NSMutableArray *data = [[NSMutableArray alloc] init];
-    AVObject *neuralData = [[AVObject alloc] initWithClassName:@"NeuralData"];
+    AVObject *neuralTempData = [[AVObject alloc] initWithClassName:@"NeuralTempData"];
     
     for(BluetoothDevice *device in self.devicesInfo) {
         if ([self isTestBeacon:device.deviceUUID] && device.historyData.count >= self.sampleSize.text.intValue / 2) {
@@ -561,18 +563,18 @@
         }
     }
     
-    [neuralData setObject:@(self.distX.text.floatValue) forKey:@"x"];
-    [neuralData setObject:@(self.distY.text.floatValue) forKey:@"y"];
-    [neuralData setObject:sampledBeacons forKey:@"deviceUUID"];
-    [neuralData setObject:data forKey:@"rawData"];
+    [neuralTempData setObject:@(self.distX.text.floatValue) forKey:@"x"];
+    [neuralTempData setObject:@(self.distY.text.floatValue) forKey:@"y"];
+    [neuralTempData setObject:sampledBeacons forKey:@"deviceUUID"];
+    [neuralTempData setObject:data forKey:@"rawData"];
     
     if (sampledBeacons.count) {
-        [neuralData saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+        [neuralTempData saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
             if (succeeded) {
                 self.samplingText.text = @"  Calculating...";
                 
                 NSMutableDictionary *parameters = [[NSMutableDictionary alloc] init];
-                [parameters setValue:neuralData.objectId forKey:@"sourceId"];
+                [parameters setValue:neuralTempData.objectId forKey:@"sourceId"];
                 
                 [AVCloud callFunctionInBackground:@"GaussianFilteringForNeural"
                                    withParameters:parameters
@@ -659,7 +661,6 @@
     
     [self.samplingText removeFromSuperview];
     [self.samplingIndicator removeFromSuperview];
-    [self.cancelButton removeFromSuperview];
     
     [UIView animateWithDuration:0.3 animations:^{
         self.blurEffect.effect = nil;
