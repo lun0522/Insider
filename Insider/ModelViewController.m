@@ -80,7 +80,6 @@
     [self.neuralButton addTarget:self
                           action:@selector(neuralRecord)
                 forControlEvents:UIControlEventTouchUpInside];
-    [self disableButtons];
     
     [self.backButton addTarget:self
                         action:@selector(dismiss)
@@ -89,7 +88,6 @@
     self.cancelButton = [UIButton buttonWithType:UIButtonTypeSystem];
     self.cancelButton.frame = CGRectMake(0, 0, 100, 20);
     self.cancelButton.center = CGPointMake(self.view.center.x, self.view.center.y * 1.32);
-    [self.cancelButton setTitle:@"Cancel" forState:UIControlStateNormal];
     self.cancelButton.titleLabel.font = [UIFont systemFontOfSize:20.0];
     [self.cancelButton addTarget:self
                           action:@selector(cancel)
@@ -260,7 +258,7 @@
                         
                         mach_timebase_info_data_t timebase_info;
                         mach_timebase_info(&timebase_info);
-                        float elapsed = self.startTime - mach_absolute_time() * timebase_info.numer / timebase_info.denom / 1000000000;
+                        float elapsed = (float)(mach_absolute_time() - self.startTime) * timebase_info.numer / timebase_info.denom / 1000000000;
                         float progress = elapsed / (self.sampleSize.text.floatValue / DEFAULT_FREQUENCY);
                         
                         [self.samplingProgress setProgress:progress animated:YES];
@@ -552,25 +550,28 @@
     [self.samplingProgress removeFromSuperview];
     
     NSMutableArray *sampledBeacons = [[NSMutableArray alloc] init];
-    AVObject *data = [[AVObject alloc] initWithClassName:@"neuralData"];
+    NSMutableArray *data = [[NSMutableArray alloc] init];
+    AVObject *neuralData = [[AVObject alloc] initWithClassName:@"NeuralData"];
     
     for(BluetoothDevice *device in self.devicesInfo) {
         if ([self isTestBeacon:device.deviceUUID] && device.historyData.count >= self.sampleSize.text.intValue / 2) {
             [sampledBeacons addObject:device.deviceUUID];
-            [data setObject:device.historyData forKey:device.deviceUUID];
+            [data addObject:device.historyData];
         }
     }
     
+    [neuralData setObject:@(self.distX.text.floatValue) forKey:@"x"];
+    [neuralData setObject:@(self.distY.text.floatValue) forKey:@"y"];
+    [neuralData setObject:sampledBeacons forKey:@"deviceUUID"];
+    [neuralData setObject:data forKey:@"rawData"];
+    
     if (sampledBeacons.count) {
-        [data saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+        [neuralData saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
             if (succeeded) {
                 self.samplingText.text = @"  Calculating...";
                 
                 NSMutableDictionary *parameters = [[NSMutableDictionary alloc] init];
-                [parameters setValue:@(self.distX.text.floatValue) forKey:@"x"];
-                [parameters setValue:@(self.distY.text.floatValue) forKey:@"y"];
-                [parameters setValue:data.objectId forKey:@"sourceId"];
-                [parameters setObject:sampledBeacons forKey:@"targetUUID"];
+                [parameters setValue:neuralData.objectId forKey:@"sourceId"];
                 
                 [AVCloud callFunctionInBackground:@"GaussianFilteringForNeural"
                                    withParameters:parameters
@@ -589,6 +590,16 @@
                 [self stopSamplingAnimation:uploadFailed detail:nil];
             }
         }];
+    } else {
+        UIAlertController *alert;
+        alert = [UIAlertController alertControllerWithTitle:@"No enough data!"
+                                                    message:@""
+                                             preferredStyle:UIAlertControllerStyleAlert];
+        UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"OK"
+                                                         style:UIAlertActionStyleCancel
+                                                       handler:nil];
+        [alert addAction:cancel];
+        [self presentViewController:alert animated:YES completion:nil];
     }
 }
 
