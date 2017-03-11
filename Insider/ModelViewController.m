@@ -89,6 +89,7 @@
     self.cancelButton.frame = CGRectMake(0, 0, 100, 20);
     self.cancelButton.center = CGPointMake(self.view.center.x, self.view.center.y * 1.32);
     self.cancelButton.titleLabel.font = [UIFont systemFontOfSize:20.0];
+    [self.cancelButton setTitle:@"Cancel" forState:UIControlStateNormal];
     [self.cancelButton addTarget:self
                           action:@selector(cancel)
                 forControlEvents:UIControlEventTouchUpInside];
