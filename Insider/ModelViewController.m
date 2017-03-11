@@ -48,6 +48,7 @@
 - (void)initBoolean {
     self.isDistance = YES;
     self.isSampling = NO;
+    self.isNeural = NO;
     self.isCharting = NO;
 }
 
@@ -55,7 +56,8 @@
     self.sampleSize.text = [NSString stringWithFormat:@"%d",DEFAULT_SAMPLE_SIZE];
     
     self.sampleSize.keyboardType = UIKeyboardTypeDecimalPad;
-    self.distORang.keyboardType = UIKeyboardTypeDecimalPad;
+    self.distX.keyboardType = UIKeyboardTypeDecimalPad;
+    self.distY.keyboardType = UIKeyboardTypeDecimalPad;
     
     self.samplingText = [[UITextField alloc] initWithFrame:CGRectMake(0.0, 0.0, 200.0, 20.0)];
     self.samplingText.center = CGPointMake(self.view.center.x, self.view.center.y * 0.8);
@@ -73,12 +75,24 @@
 
 - (void)initButton {
     [self.recordButton addTarget:self
-                          action:@selector(record)
+                          action:@selector(normalRecord)
                 forControlEvents:UIControlEventTouchUpInside];
-    [self disableRecordButton];
+    [self.neuralButton addTarget:self
+                          action:@selector(neuralRecord)
+                forControlEvents:UIControlEventTouchUpInside];
+    [self disableButtons];
     
     [self.backButton addTarget:self
-                          action:@selector(dismiss)
+                        action:@selector(dismiss)
+              forControlEvents:UIControlEventTouchUpInside];
+    
+    self.cancelButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    self.cancelButton.frame = CGRectMake(0, 0, 100, 20);
+    self.cancelButton.center = CGPointMake(self.view.center.x, self.view.center.y * 1.32);
+    [self.cancelButton setTitle:@"Cancel" forState:UIControlStateNormal];
+    self.cancelButton.titleLabel.font = [UIFont systemFontOfSize:20.0];
+    [self.cancelButton addTarget:self
+                          action:@selector(cancel)
                 forControlEvents:UIControlEventTouchUpInside];
 }
 
@@ -164,7 +178,7 @@
         state = [state stringByAppendingString:@"Powered on"];
         
         [self.timer setFireDate:[NSDate distantPast]];
-        [self enableRecordButton];
+        [self enableButtons];
     } else {
         switch (central.state) {
             case CBManagerStateUnknown:
@@ -187,10 +201,11 @@
         }
         [self stopScanning];
         [self.timer setFireDate:[NSDate distantFuture]];
-        [self disableRecordButton];
+        [self disableButtons];
         
-        if (self.isSampling) {
+        if (self.isSampling || self.isNeural) {
             self.isSampling = NO;
+            self.isNeural = NO;
             [self.samplingProgress removeFromSuperview];
             [self stopSamplingAnimation:bluetoothShutDown detail:nil];
         }
@@ -224,16 +239,40 @@
             
             [self.rssiList reloadData];
             
-            if (self.isSampling && [uuidString isEqualToString:self.beingSampledBeacon.deviceUUID]) {
-                [self.beingSampledBeacon.historyData addObject:[NSNumber numberWithInt:RSSI.intValue]];
+            if (self.isSampling && !self.isNeural && [uuidString isEqualToString:self.beingSampledBeacon.deviceUUID]) {
+                [self.beingSampledBeacon.historyData addObject:RSSI];
                 
                 if (self.sampleSize.text.intValue != 0) {
-                    [self.samplingProgress setProgress:(float)[self.beingSampledBeacon.historyData count] / (float)self.sampleSize.text.intValue animated:YES];
+                    [self.samplingProgress setProgress:(float)self.beingSampledBeacon.historyData.count / (float)self.sampleSize.text.intValue animated:YES];
                     
-                    if ([self.beingSampledBeacon.historyData count] == self.sampleSize.text.intValue) {
+                    if (self.beingSampledBeacon.historyData.count == self.sampleSize.text.intValue) {
                         self.isSampling = NO;
                         
-                        [self upload];
+                        [self normalUpload];
+                    }
+                }
+            }
+            
+            if (self.isSampling && self.isNeural && [self isTestBeacon:uuidString]) {
+                for(BluetoothDevice *device in self.devicesInfo) {
+                    if ([device.deviceUUID isEqualToString:uuidString]) {
+                        [device.historyData addObject:RSSI];
+                        
+                        mach_timebase_info_data_t timebase_info;
+                        mach_timebase_info(&timebase_info);
+                        float elapsed = self.startTime - mach_absolute_time() * timebase_info.numer / timebase_info.denom / 1000000000;
+                        float progress = elapsed / (self.sampleSize.text.floatValue / DEFAULT_FREQUENCY);
+                        
+                        [self.samplingProgress setProgress:progress animated:YES];
+                        
+                        if (progress >= 1.0) {
+                            self.isSampling = NO;
+                            self.isNeural = NO;
+                            
+                            [self neuralUpload];
+                        }
+                        
+                        break;
                     }
                 }
             }
@@ -283,7 +322,7 @@
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return [self.devicesInfo count];
+    return self.devicesInfo.count;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView
@@ -296,30 +335,19 @@
         cell = [[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault
                                      reuseIdentifier:nil];
         
-        if (row < [self.devicesInfo count]) {
+        if (row < self.devicesInfo.count) {
             BluetoothDevice *device = [self.devicesInfo objectAtIndex:row];
             
-            if ([device.deviceUUID isEqualToString:UUID1]) {
-                cell.textLabel.text = textBeacon1;
-            } else if ([device.deviceUUID isEqualToString:UUID2]) {
-                cell.textLabel.text = textBeacon2;
-            } else if ([device.deviceUUID isEqualToString:UUID3]) {
-                cell.textLabel.text = textBeacon3;
-            } else if ([device.deviceUUID isEqualToString:UUID4]) {
-                cell.textLabel.text = textBeacon4;
-            } else {
-                cell.textLabel.text = device.deviceUUID;
-            }
-            
+            cell.textLabel.text = [self uuidToName:device.deviceUUID];
             cell.textLabel.font = [UIFont systemFontOfSize:20.0];
         }
         
-        cell.userInteractionEnabled = row < [self.devicesInfo count] ? YES : NO;
+        cell.userInteractionEnabled = row < self.devicesInfo.count ? YES : NO;
     } else {
         cell = [[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault
                                      reuseIdentifier:nil];
         
-        if (row < [self.devicesInfo count]) {
+        if (row < self.devicesInfo.count) {
             BluetoothDevice *device = [self.devicesInfo objectAtIndex:row];
             cell.textLabel.text = [NSString stringWithFormat:@"%d",[device.deviceRSSI intValue]];
         }
@@ -338,7 +366,7 @@
     NSString *selected = [[[tableView cellForRowAtIndexPath:indexPath] textLabel] text];
     
     if (![selected isEqualToString:self.beaconName.text]) {
-        if ([selected isEqualToString:textBeacon1] || [selected isEqualToString:textBeacon2] || [selected isEqualToString:textBeacon3] || [selected isEqualToString:textBeacon4]) {
+        if ([self isTestBeacon:device.deviceUUID]) {
             self.isCharting = YES;
             
             [self.rawData removeAllObjects];
@@ -372,10 +400,10 @@
     tableView1.contentOffset = offset;
 }
 
-#pragma mark - Supplementary Methods
+#pragma mark - Button Methods
 
-- (void)record {
-    if ([self isPureInt:self.sampleSize.text] && self.beaconName.text.length != 0 && [self isPureFloat:self.distORang.text]) {
+- (void)normalRecord {
+    if ([self isPureInt:self.sampleSize.text] && self.beaconName.text.length != 0 && [self isPureFloat:self.distY.text]) {
         [self.beingSampledBeacon.historyData removeAllObjects];
         
         self.isSampling = YES;
@@ -406,7 +434,7 @@
                                                     message:@""
                                              preferredStyle:UIAlertControllerStyleAlert];
         
-        if (![self isPureFloat:self.distORang.text]) {
+        if (![self isPureFloat:self.distY.text]) {
             alert.title = self.isDistance? @"Distance is invalid!": @"Angle is invalid!";
         }
         
@@ -426,7 +454,7 @@
     }
 }
 
-- (void)upload {
+- (void)normalUpload {
     self.samplingText.text = @"   Uploading...";
     [self.samplingProgress removeFromSuperview];
     
@@ -436,7 +464,7 @@
     AVObject *data = [[AVObject alloc] initWithClassName:self.isDistance? @"DistanceData": @"AngleData"];
     [data setObject:self.beingSampledBeacon.deviceUUID forKey:@"deviceUUID"];
     [data setObject:self.beingSampledBeacon.historyData forKey:@"data"];
-    [data setObject:[numberFormatter numberFromString:self.distORang.text]
+    [data setObject:[numberFormatter numberFromString:self.distY.text]
              forKey:self.isDistance? @"distance": @"angle"];
     
     [data saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
@@ -469,13 +497,135 @@
     }];
 }
 
+- (void)neuralRecord {
+    if (self.isDistance) {
+        if ([self isPureInt:self.sampleSize.text] && self.sampleSize.text.intValue > 0 && [self isPureFloat:self.distX.text] && [self isPureFloat:self.distY.text]) {
+            for(BluetoothDevice *device in self.devicesInfo) {
+                if ([self isTestBeacon:device.deviceUUID]) {
+                    [device.historyData removeAllObjects];
+                }
+            }
+            
+            self.startTime = mach_absolute_time();
+            self.isSampling = YES;
+            self.isNeural = YES;
+            
+            [self startSamplingAnimation];
+        } else {
+            UIAlertController *alert;
+            alert = [UIAlertController alertControllerWithTitle:@""
+                                                        message:@""
+                                                 preferredStyle:UIAlertControllerStyleAlert];
+            
+            if (![self isPureFloat:self.distX.text] || ![self isPureFloat:self.distY.text]) {
+                alert.title = @"Coordinate is invalid!";
+            }
+            
+            if (![self isPureInt:self.sampleSize.text] || self.sampleSize.text.intValue <= 0) {
+                alert.title = @"Sample size is invalid!";
+            }
+            
+            UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"OK"
+                                                             style:UIAlertActionStyleCancel
+                                                           handler:nil];
+            [alert addAction:cancel];
+            [self presentViewController:alert animated:YES completion:nil];
+        }
+    } else {
+        UIAlertController *alert;
+        alert = [UIAlertController alertControllerWithTitle:@"Please specify your location!"
+                                                    message:@""
+                                             preferredStyle:UIAlertControllerStyleAlert];
+        UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"OK"
+                                                         style:UIAlertActionStyleCancel
+                                                       handler:nil];
+        [alert addAction:cancel];
+        [self presentViewController:alert animated:YES completion:nil];
+        
+        self.isDistance = YES;
+        self.DAIndicator.text = @"Distance";
+    }
+}
+
+- (void)neuralUpload {
+    self.samplingText.text = @"   Uploading...";
+    [self.samplingProgress removeFromSuperview];
+    
+    NSMutableArray *sampledBeacons = [[NSMutableArray alloc] init];
+    AVObject *data = [[AVObject alloc] initWithClassName:@"neuralData"];
+    
+    for(BluetoothDevice *device in self.devicesInfo) {
+        if ([self isTestBeacon:device.deviceUUID] && device.historyData.count >= self.sampleSize.text.intValue / 2) {
+            [sampledBeacons addObject:device.deviceUUID];
+            [data setObject:device.historyData forKey:device.deviceUUID];
+        }
+    }
+    
+    if (sampledBeacons.count) {
+        [data saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+            if (succeeded) {
+                self.samplingText.text = @"  Calculating...";
+                
+                NSMutableDictionary *parameters = [[NSMutableDictionary alloc] init];
+                [parameters setValue:@(self.distX.text.floatValue) forKey:@"x"];
+                [parameters setValue:@(self.distY.text.floatValue) forKey:@"y"];
+                [parameters setValue:data.objectId forKey:@"sourceId"];
+                [parameters setObject:sampledBeacons forKey:@"targetUUID"];
+                
+                [AVCloud callFunctionInBackground:@"GaussianFilteringForNeural"
+                                   withParameters:parameters
+                                            block:^(id object, NSError *error) {
+                                                if(error != nil){
+                                                    NSLog(@"Failed in filtering: %@",error);
+                                                    
+                                                    [self stopSamplingAnimation:filterFailed detail:nil];
+                                                } else {
+                                                    [self stopSamplingAnimation:accomplished detail:@""];
+                                                }
+                                            }];
+            } else {
+                NSLog(@"Failed in uploading: %@",error);
+                
+                [self stopSamplingAnimation:uploadFailed detail:nil];
+            }
+        }];
+    }
+}
+
 - (void)dismiss {
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
-- (void)startSamplingAnimation {
-    self.view.userInteractionEnabled = NO;
+- (void)cancel {
+    self.isSampling = NO;
+    self.isNeural = NO;
+    [self.samplingProgress removeFromSuperview];
+    [self stopSamplingAnimation:cancelled detail:nil];
+}
+
+- (void)enableButtons {
+    self.recordButton.userInteractionEnabled = YES;
+    self.recordButton.alpha = 1.0;
+    [self.recordButton setTitleColor:[UIColor redColor] forState:UIControlStateNormal];
     
+    self.neuralButton.userInteractionEnabled = YES;
+    self.neuralButton.alpha = 1.0;
+    [self.neuralButton setTitleColor:[UIColor redColor] forState:UIControlStateNormal];
+}
+
+- (void)disableButtons {
+    self.recordButton.userInteractionEnabled = NO;
+    self.recordButton.alpha = 0.4;
+    [self.recordButton setTitleColor:[UIColor grayColor] forState:UIControlStateNormal];
+    
+    self.neuralButton.userInteractionEnabled = NO;
+    self.neuralButton.alpha = 0.4;
+    [self.neuralButton setTitleColor:[UIColor grayColor] forState:UIControlStateNormal];
+}
+
+#pragma mark - Supplementary Methods
+
+- (void)startSamplingAnimation {
     self.samplingText.text = @"  Sampling...";
     [self.samplingIndicator startAnimating];
     [self.samplingProgress setProgress:0.0];
@@ -488,16 +638,16 @@
         [self.view addSubview:self.samplingText];
         [self.view addSubview:self.samplingIndicator];
         [self.view addSubview:self.samplingProgress];
+        [self.view addSubview:self.cancelButton];
     }];
 }
 
 - (void)stopSamplingAnimation:(NSInteger)reason detail:(NSString *)message {
-    self.view.userInteractionEnabled = YES;
-    
     [self.samplingIndicator stopAnimating];
     
     [self.samplingText removeFromSuperview];
     [self.samplingIndicator removeFromSuperview];
+    [self.cancelButton removeFromSuperview];
     
     [UIView animateWithDuration:0.3 animations:^{
         self.blurEffect.effect = nil;
@@ -524,6 +674,9 @@
                 alert.title = @"Successful!";
                 alert.message = message;
                 break;
+            case cancelled:
+                alert.title = @"Operation cancelled.";
+                break;
             default:
                 break;
         }
@@ -534,18 +687,6 @@
         [alert addAction:cancel];
         [self presentViewController:alert animated:YES completion:nil];
     }];
-}
-
-- (void)enableRecordButton {
-    self.recordButton.userInteractionEnabled = YES;
-    self.recordButton.alpha = 1.0;
-    [self.recordButton setTitleColor:[UIColor redColor] forState:UIControlStateNormal];
-}
-
-- (void)disableRecordButton {
-    self.recordButton.userInteractionEnabled = NO;
-    self.recordButton.alpha = 0.4;
-    [self.recordButton setTitleColor:[UIColor grayColor] forState:UIControlStateNormal];
 }
 
 - (BOOL)isPureInt:(NSString *)string {
@@ -560,6 +701,24 @@
     return [scan scanFloat:&val] && [scan isAtEnd] && string.floatValue >= 0;
 }
 
+- (BOOL)isTestBeacon:(NSString *)uuid {
+    return [uuid isEqualToString:UUID1] || [uuid isEqualToString:UUID2] || [uuid isEqualToString:UUID3] || [uuid isEqualToString:UUID4];
+}
+
+- (NSString *)uuidToName:(NSString *)uuid {
+    if ([uuid isEqualToString:UUID1]) {
+        return textBeacon1;
+    } else if ([uuid isEqualToString:UUID2]) {
+        return textBeacon2;
+    } else if ([uuid isEqualToString:UUID3]) {
+        return textBeacon3;
+    } else if ([uuid isEqualToString:UUID4]) {
+        return textBeacon4;
+    } else {
+        return uuid;
+    }
+}
+
 - (void)tapSize:(UITapGestureRecognizer*)recognizer {
     self.sampleSize.text = [self.sampleSize.text isEqualToString:@"0"]? [NSString stringWithFormat:@"%d",DEFAULT_SAMPLE_SIZE]: @"0";
 }
@@ -571,7 +730,8 @@
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event{
     [self.sampleSize resignFirstResponder];
-    [self.distORang resignFirstResponder];
+    [self.distX resignFirstResponder];
+    [self.distY resignFirstResponder];
 }
 
 - (PNLineChartData *)chartWithR:(float)red
@@ -581,7 +741,7 @@
     PNLineChartData *data = [PNLineChartData new];
     
     data.color = [UIColor colorWithRed:red/255.0 green:green/255.0 blue:blue/255.0 alpha:1.0];
-    data.itemCount = [array count];
+    data.itemCount = array.count;
     data.getData = ^(NSUInteger index) {
         CGFloat yValue = [array[index] floatValue];
         return [PNLineChartDataItem dataItemWithY:yValue];
