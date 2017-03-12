@@ -172,11 +172,11 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" image="floor.png" translatesAutoresizingMaskIntoConstraints="NO" id="sED-Rx-ddf">
-                                <rect key="frame" x="42" y="252" width="330" height="420"/>
+                                <rect key="frame" x="57" y="265" width="300" height="375"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMinX="YES" widthSizable="YES" flexibleMaxX="YES" flexibleMinY="YES" heightSizable="YES" flexibleMaxY="YES"/>
                             </imageView>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" image="tranparent.png" translatesAutoresizingMaskIntoConstraints="NO" id="Q6n-P6-rhJ">
-                                <rect key="frame" x="42" y="252" width="330" height="420"/>
+                                <rect key="frame" x="57" y="265" width="300" height="375"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMinX="YES" widthSizable="YES" flexibleMaxX="YES" flexibleMinY="YES" heightSizable="YES" flexibleMaxY="YES"/>
                             </imageView>
                         </subviews>
@@ -327,7 +327,7 @@
         </scene>
     </scenes>
     <resources>
-        <image name="floor.png" width="330" height="420"/>
+        <image name="floor.png" width="600" height="750"/>
         <image name="tranparent.png" width="1" height="1"/>
     </resources>
 </document>

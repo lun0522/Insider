@@ -60,6 +60,10 @@
     self.distX.keyboardType = UIKeyboardTypeDecimalPad;
     self.distY.keyboardType = UIKeyboardTypeDecimalPad;
     
+    self.distX.placeholder = @"x";
+    self.distY.placeholder = @"y";
+    self.beaconName.placeholder = @"Please select one";
+    
     self.samplingText = [[UITextField alloc] initWithFrame:CGRectMake(0.0, 0.0, 200.0, 20.0)];
     self.samplingText.center = CGPointMake(self.view.center.x, self.view.center.y * 0.8);
     self.samplingText.text = @"  Sampling...";
