@@ -540,6 +540,11 @@
     }
     
     [rawData setObject:uuids forKey:@"deviceUUID"];
+    [rawData setObject:@(self.distX.text.floatValue) forKey:@"x"];
+    [rawData setObject:@(self.distY.text.floatValue) forKey:@"y"];
+    [rawData setObject:@(self.motionManager.deviceMotion.attitude.roll * 180 / M_PI) forKey:@"roll"];
+    [rawData setObject:@(self.motionManager.deviceMotion.attitude.pitch * 180 / M_PI) forKey:@"pitch"];
+    [rawData setObject:@(self.motionManager.deviceMotion.attitude.yaw* 180 / M_PI) forKey:@"yaw"];
     [rawData setObject:datas forKey:@"rawData"];
     
     if (uuids.count) {

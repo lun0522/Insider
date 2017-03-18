@@ -76,11 +76,11 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
     var query =new AV.Query('NeuralTempData');
     query.get(request.params.sourceId).then(function (source) {
         var uuidArray = source.get('deviceUUID');
-        var xArray = source.get('x');
-        var yArray = source.get('y');
-        var rollArray = source.get('roll');
-        var pitchArray = source.get('pitch');
-        var yawArray = source.get('yaw');
+        var device_x = source.get('x');
+        var device_y = source.get('y');
+        var device_roll = source.get('roll');
+        var device_pitch = source.get('pitch');
+        var device_yaw = source.get('yaw');
         var dataArray = source.get('rawData');
         
         for (var j = 0, updated = 0; j < dataArray.length; j++) {
@@ -130,30 +130,48 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
               var_RSSI = 0.1;
             }
             
+            var exist = new AV.Query('BeaconInfo');
+	    	exist.equalTo('beaconUUID', uuidArray[j]);
+	    	exist.first().then(function (existing) {
+	    		if (existing == null) {     // Refuse
+	    		    console.log('No info for beacon ' + uuidArray[j]);
+	    		    updated++;
+                    	
+                	if (updated == dataArray.length) {
+                		return response.success();
+                	}
+	    		} else {        // Upload
+                     var NewData = AV.Object.extend('NeuralData');
+                     var newData = new NewData();
+                     newData.set('x', device_x - existing.get('x'));
+                     newData.set('y', device_y - existing.get('y'));
+                     newData.set('roll', device_x - existing.get('roll'));
+                     newData.set('pitch', device_x - existing.get('pitch'));
+                     newData.set('yaw', device_x - existing.get('yaw'));
+                     newData.set('rssi', mean_RSSI);
+                     newData.set('variance', var_RSSI);
+                     newData.save().then(function (object) {
+                        AV.Cloud.run('beaconModeling', {targetUUID: uuidArray[j]});
+                    	console.log('Uploaded: ' + object.id);
+                    	updated++;
+                    	
+                    	if (updated == dataArray.length) {
+                    		return response.success();
+                    		
+                    	}
+                    }, function (error) {
+                    	console.error(error);
+                    	return response.error(error);
+                    });
+	    		}
+	    	}, function (error) {
+	          	console.error(error);
+	      	});
+            
             // Upload
-            var NewData = AV.Object.extend('NeuralData');
-            var newData = new NewData();
-            newData.set('device_uuid',uuidArray[j]);
-            newData.set('x',xArray[j]);
-            newData.set('y',yArray[j]);
-            newData.set('roll',rollArray[j]);
-            newData.set('pitch',pitchArray[j]);
-            newData.set('yaw',yawArray[j]);
-            newData.set('rssi',mean_RSSI);
-            newData.set('variance',var_RSSI);
-            newData.save().then(function (object) {
-                AV.Cloud.run('beaconModeling', {targetUUID: uuidArray[j]});
-				console.log('Updated: ' + object.id);
-				updated++;
-				
-				if (updated == dataArray.length) {
-					return response.success();
-					
-				}
-			}, function (error) {
-				console.error(error);
-				return response.error(error);
-			});
+           
+			
+			
         }
     }, function (error) {
       console.error(error);
@@ -163,7 +181,7 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
 
 AV.Cloud.define('beaconModeling', function(request, response) {
     var query = new AV.Query('NeuralData');
-    query.equalTo('device_uuid',request.params.targetUUID);
+    query.equalTo('device_uuid', request.params.targetUUID);
     query.find().then(function (results) {
         var count = results.length;
     	
