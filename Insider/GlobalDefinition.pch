@@ -23,14 +23,6 @@
 #define textBeacon2                                  @"insiderBeacon-2"
 #define textBeacon3                                  @"insiderBeacon-3"
 #define textBeacon4                                  @"insiderBeacon-4"
-#define x1                                                         0.00
-#define y1                                                         1.68
-#define x2                                                         4.20
-#define y2                                                         7.53
-#define x3                                                           -1
-#define y3                                                           -1
-#define x4                                                         6.00
-#define y4                                                         2.88
 #define val_a                                                     -57.6
 #define val_b                                                     -25.4
 #define MAP_WIDTH                                                   300

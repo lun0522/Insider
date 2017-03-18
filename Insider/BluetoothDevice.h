@@ -15,6 +15,9 @@
 @property (strong, nonatomic) NSString *deviceUUID;
 @property (retain, nonatomic) NSNumber *x;
 @property (retain, nonatomic) NSNumber *y;
+@property (retain, nonatomic) NSNumber *roll;
+@property (retain, nonatomic) NSNumber *pitch;
+@property (retain, nonatomic) NSNumber *yaw;
 @property (retain, nonatomic) NSNumber *distance;
 @property (retain, nonatomic) NSNumber *deviceRSSI;
 @property (strong, nonatomic) NSMutableArray *historyData;

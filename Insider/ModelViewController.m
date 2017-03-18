@@ -21,6 +21,7 @@
     
     [self initBoolean];
     [self initText];
+    [self initGestureRecognizer];
     [self initButton];
     [self initTableView];
     [self initArray];
@@ -34,8 +35,8 @@
 
 - (void)viewWillDisappear:(BOOL)animated {
     [self stopScanning];
-    [self.timer invalidate];
-    self.timer = nil;
+    [self.scanTimer invalidate];
+    self.scanTimer = nil;
     [self.motionManager stopDeviceMotionUpdates];
 }
 
@@ -76,6 +77,13 @@
     
     self.DAIndicator.userInteractionEnabled = YES;
     [self.DAIndicator addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapDistAng:)]];
+}
+
+- (void)initGestureRecognizer {
+    self.eulerView.userInteractionEnabled = YES;
+    [self.eulerView addGestureRecognizer:[[UILongPressGestureRecognizer alloc]
+                                          initWithTarget:self
+                                          action:@selector(pressEulerAngle:)]];
 }
 
 - (void)initButton {
@@ -153,12 +161,19 @@
 }
 
 - (void)initTimer {
-    self.timer = [NSTimer scheduledTimerWithTimeInterval:1.0 / DEFAULT_FREQUENCY
+    self.scanTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 / DEFAULT_FREQUENCY
                                                   target:self
                                                 selector:@selector(startScanning)
                                                 userInfo:nil
                                                  repeats:YES];
-    [self.timer setFireDate:[NSDate distantFuture]];
+    [self.scanTimer setFireDate:[NSDate distantFuture]];
+    
+    self.renewTimer = [NSTimer scheduledTimerWithTimeInterval:0.1
+                                                       target:self
+                                                     selector:@selector(renewEulerAngle)
+                                                     userInfo:nil
+                                                      repeats:YES];
+    [self.renewTimer setFireDate:[NSDate distantPast]];
 }
 
 - (void)initBlurEffect {
@@ -181,35 +196,12 @@
 #pragma mark - Bluetooth
 
 - (void)centralManagerDidUpdateState:(CBCentralManager *)central {
-    NSString *state = @"Current State of Bluetooth - ";
-    
     if (central.state == CBManagerStatePoweredOn) {
-        state = [state stringByAppendingString:@"Powered on"];
-        
-        [self.timer setFireDate:[NSDate distantPast]];
+        [self.scanTimer setFireDate:[NSDate distantPast]];
         [self enableButtons];
     } else {
-        switch (central.state) {
-            case CBManagerStateUnknown:
-                state = [state stringByAppendingString:@"Unknown"];
-                break;
-            case CBManagerStateResetting:
-                state = [state stringByAppendingString:@"Resetting"];
-                break;
-            case CBManagerStateUnsupported:
-                state = [state stringByAppendingString:@"Unsupported"];
-                break;
-            case CBManagerStateUnauthorized:
-                state = [state stringByAppendingString:@"Unauthorized"];
-                break;
-            case CBManagerStatePoweredOff:
-                state = [state stringByAppendingString:@"Powered off"];
-                break;
-            default:
-                break;
-        }
         [self stopScanning];
-        [self.timer setFireDate:[NSDate distantFuture]];
+        [self.scanTimer setFireDate:[NSDate distantFuture]];
         [self disableButtons];
         
         if (self.isSampling || self.isNeural) {
@@ -219,8 +211,6 @@
             [self stopSamplingAnimation:bluetoothShutDown detail:nil];
         }
     }
-    
-    self.bluetoothState.text = state;
 }
 
 - (void)centralManager:(CBCentralManager *)central
@@ -237,8 +227,9 @@
             [self.sampledUUID addObject:uuidString];
             [self.devicesUUID addObject:uuidString];
             [self.devicesInfo addObject:device];
+            
             [self.deviceList reloadData];
-            [self.rssiList reloadData];
+            [self.rssiList   reloadData];
         } else if (![self.sampledUUID containsObject:uuidString]) {
             [self.sampledUUID addObject:uuidString];
             
@@ -424,7 +415,7 @@
             alert = [UIAlertController alertControllerWithTitle:@"Sampling..."
                                                         message:@""
                                                  preferredStyle:UIAlertControllerStyleAlert];
-            UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"Finish"
+            UIAlertAction *finish = [UIAlertAction actionWithTitle:@"Finish"
                                                              style:UIAlertActionStyleDestructive
                                                            handler:^(UIAlertAction *action) {
                                                                self.isSampling = NO;
@@ -434,32 +425,25 @@
                                                                [data setObject:self.beingSampledBeacon.historyData forKey:@"data"];
                                                                [data saveInBackground];
                                                            }];
-            [alert addAction:cancel];
+            [alert addAction:finish];
             [self presentViewController:alert animated:YES completion:nil];
         }
     } else {
-        UIAlertController *alert;
-        alert = [UIAlertController alertControllerWithTitle:@""
-                                                    message:@""
-                                             preferredStyle:UIAlertControllerStyleAlert];
+        NSString *titleString;
         
         if (![self isPureFloat:self.distY.text]) {
-            alert.title = self.isDistance? @"Distance is invalid!": @"Angle is invalid!";
+            titleString = self.isDistance? @"Distance is invalid!": @"Angle is invalid!";
         }
         
         if (self.beaconName.text.length == 0) {
-            alert.title = @"Please choose a beacon!";
+            titleString = @"Please choose a beacon!";
         }
         
         if (![self isPureInt:self.sampleSize.text]) {
-            alert.title = @"Sample size is invalid!";
+            titleString = @"Sample size is invalid!";
         }
         
-        UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"OK"
-                                                         style:UIAlertActionStyleCancel
-                                                       handler:nil];
-        [alert addAction:cancel];
-        [self presentViewController:alert animated:YES completion:nil];
+        [self showAlertWithTitle:titleString message:@""];
     }
 }
 
@@ -484,9 +468,6 @@
             NSMutableDictionary *parameters = [[NSMutableDictionary alloc] init];
             [parameters setValue:data.objectId forKey:@"sourceId"];
             [parameters setValue:self.isDistance? @"distance": @"angle" forKey:@"dataType"];
-            if (self.isDistance) {      // No UUID, no modeling
-                [parameters setValue:self.beingSampledBeacon.deviceUUID forKey:@"targetUUID"];
-            }
             
             [AVCloud callFunctionInBackground:@"GaussianFiltering"
                                withParameters:parameters
@@ -522,35 +503,20 @@
             
             [self startSamplingAnimation];
         } else {
-            UIAlertController *alert;
-            alert = [UIAlertController alertControllerWithTitle:@""
-                                                        message:@""
-                                                 preferredStyle:UIAlertControllerStyleAlert];
+            NSString *titleString;
             
             if (![self isPureFloat:self.distX.text] || ![self isPureFloat:self.distY.text]) {
-                alert.title = @"Coordinate is invalid!";
+                titleString = @"Coordinate is invalid!";
             }
             
             if (![self isPureInt:self.sampleSize.text] || self.sampleSize.text.intValue <= 0) {
-                alert.title = @"Sample size is invalid!";
+                titleString = @"Sample size is invalid!";
             }
             
-            UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"OK"
-                                                             style:UIAlertActionStyleCancel
-                                                           handler:nil];
-            [alert addAction:cancel];
-            [self presentViewController:alert animated:YES completion:nil];
+            [self showAlertWithTitle:titleString message:@""];
         }
     } else {
-        UIAlertController *alert;
-        alert = [UIAlertController alertControllerWithTitle:@"Please specify your location!"
-                                                    message:@""
-                                             preferredStyle:UIAlertControllerStyleAlert];
-        UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"OK"
-                                                         style:UIAlertActionStyleCancel
-                                                       handler:nil];
-        [alert addAction:cancel];
-        [self presentViewController:alert animated:YES completion:nil];
+        [self showAlertWithTitle:@"Please specify your location!" message:@""];
         
         self.isDistance = YES;
         self.DAIndicator.text = @"Distance";
@@ -562,32 +528,27 @@
     [self.samplingProgress removeFromSuperview];
     [self.cancelButton removeFromSuperview];
     
-    NSMutableArray *sampledBeacons = [[NSMutableArray alloc] init];
-    NSMutableArray *data = [[NSMutableArray alloc] init];
-    AVObject *neuralTempData = [[AVObject alloc] initWithClassName:@"NeuralTempData"];
+    NSMutableArray *uuids = [[NSMutableArray alloc] init];
+    NSMutableArray *datas = [[NSMutableArray alloc] init];
+    AVObject *rawData = [[AVObject alloc] initWithClassName:@"NeuralRawData"];
     
     for(BluetoothDevice *device in self.devicesInfo) {
         if ([self isTestBeacon:device.deviceUUID] && device.historyData.count >= self.sampleSize.text.intValue / 2) {
-            [sampledBeacons addObject:device.deviceUUID];
-            [data addObject:device.historyData];
+            [uuids addObject:device.deviceUUID];
+            [datas addObject:device.historyData];
         }
     }
     
-    [neuralTempData setObject:@(self.distX.text.floatValue) forKey:@"x"];
-    [neuralTempData setObject:@(self.distY.text.floatValue) forKey:@"y"];
-    [neuralTempData setObject:@(self.motionManager.deviceMotion.attitude.roll) forKey:@"roll"];
-    [neuralTempData setObject:@(self.motionManager.deviceMotion.attitude.pitch) forKey:@"pitch"];
-    [neuralTempData setObject:@(self.motionManager.deviceMotion.attitude.yaw) forKey:@"yaw"];
-    [neuralTempData setObject:sampledBeacons forKey:@"deviceUUID"];
-    [neuralTempData setObject:data forKey:@"rawData"];
+    [rawData setObject:uuids forKey:@"deviceUUID"];
+    [rawData setObject:datas forKey:@"rawData"];
     
-    if (sampledBeacons.count) {
-        [neuralTempData saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+    if (uuids.count) {
+        [rawData saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
             if (succeeded) {
                 self.samplingText.text = @"  Calculating...";
                 
                 NSMutableDictionary *parameters = [[NSMutableDictionary alloc] init];
-                [parameters setValue:neuralTempData.objectId forKey:@"sourceId"];
+                [parameters setValue:rawData.objectId forKey:@"sourceId"];
                 
                 [AVCloud callFunctionInBackground:@"GaussianFilteringForNeural"
                                    withParameters:parameters
@@ -607,15 +568,7 @@
             }
         }];
     } else {
-        UIAlertController *alert;
-        alert = [UIAlertController alertControllerWithTitle:@"No enough data!"
-                                                    message:@""
-                                             preferredStyle:UIAlertControllerStyleAlert];
-        UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"OK"
-                                                         style:UIAlertActionStyleCancel
-                                                       handler:nil];
-        [alert addAction:cancel];
-        [self presentViewController:alert animated:YES completion:nil];
+        [self showAlertWithTitle:@"No enough data!" message:@""];
     }
 }
 
@@ -681,38 +634,32 @@
     } completion:^(BOOL finished) {
         [self.blurEffect removeFromSuperview];
         
-        UIAlertController *alert;
-        alert = [UIAlertController alertControllerWithTitle:@""
-                                                    message:@""
-                                             preferredStyle:UIAlertControllerStyleAlert];
+        NSString *titleString;
+        NSString *messageString = @"";
         
         switch (reason) {
             case bluetoothShutDown:
-                alert.title = @"Failed!";
-                alert.message = @"Bluetooth is shut down";
+                titleString = @"Failed!";
+                messageString = @"Bluetooth is shut down";
                 break;
             case uploadFailed:
-                alert.title = @"Failed in uploading.";
+                titleString = @"Failed in uploading.";
                 break;
             case filterFailed:
-                alert.title = @"Failed in filtering.";
+                titleString = @"Failed in filtering.";
                 break;
             case accomplished:
-                alert.title = @"Successful!";
-                alert.message = message;
+                titleString = @"Successful!";
+                messageString = message;
                 break;
             case cancelled:
-                alert.title = @"Operation cancelled.";
+                titleString = @"Operation cancelled.";
                 break;
             default:
                 break;
         }
         
-        UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"OK"
-                                                         style:UIAlertActionStyleCancel
-                                                       handler:nil];
-        [alert addAction:cancel];
-        [self presentViewController:alert animated:YES completion:nil];
+        [self showAlertWithTitle:titleString message:messageString];
     }];
 }
 
@@ -730,6 +677,77 @@
 
 - (BOOL)isTestBeacon:(NSString *)uuid {
     return [uuid isEqualToString:UUID1] || [uuid isEqualToString:UUID2] || [uuid isEqualToString:UUID3] || [uuid isEqualToString:UUID4];
+}
+
+- (void)renewEulerAngle {
+    self.rollText.text = [NSString stringWithFormat:@"%.2f",self.motionManager.deviceMotion.attitude.roll * 180 / M_PI];
+    self.pitchText.text = [NSString stringWithFormat:@"%.2f",self.motionManager.deviceMotion.attitude.pitch * 180 / M_PI];
+    self.yawText.text = [NSString stringWithFormat:@"%.2f",self.motionManager.deviceMotion.attitude.yaw * 180 / M_PI];
+}
+
+- (void)pressEulerAngle:(UILongPressGestureRecognizer *)recognizer {
+    if ([self isPureFloat:self.distX.text] && [self isPureFloat:self.distY.text]) {
+        if (recognizer.state == UIGestureRecognizerStateBegan) {
+            UIAlertController *alert;
+            alert = [UIAlertController alertControllerWithTitle:@"Choose a beacon"
+                                                        message:@"whose info will be renewed"
+                                                 preferredStyle: UIAlertControllerStyleActionSheet];
+            
+            [alert addAction: [UIAlertAction actionWithTitle: textBeacon1 style: UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+                [self renewBeaconInfoWithUUID:UUID1];
+            }]];
+            
+            [alert addAction: [UIAlertAction actionWithTitle: textBeacon2 style: UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+                [self renewBeaconInfoWithUUID:UUID2];
+            }]];
+            
+            [alert addAction: [UIAlertAction actionWithTitle: textBeacon3 style: UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+                [self renewBeaconInfoWithUUID:UUID3];
+            }]];
+            
+            [alert addAction: [UIAlertAction actionWithTitle: textBeacon4 style: UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+                [self renewBeaconInfoWithUUID:UUID4];
+            }]];
+            
+            [alert addAction: [UIAlertAction actionWithTitle: @"Cancel" style: UIAlertActionStyleCancel handler:nil]];
+            
+            [self presentViewController: alert animated: YES completion: nil];
+        }
+    } else {
+        [self showAlertWithTitle:@"Coordinate is invalid!" message:@""];
+    }
+}
+
+- (void)renewBeaconInfoWithUUID:(NSString *)uuid {
+    AVQuery *query = [AVQuery queryWithClassName:@"BeaconInfo"];
+    [query whereKey:@"beaconUUID" equalTo:uuid];
+    [query getFirstObjectInBackgroundWithBlock:^(AVObject *object, NSError *error) {
+        if (error != nil) {
+            NSLog(@"Failed in searching: %@",error);
+        } else {
+            AVObject *newInfo;
+            
+            if (object == nil) {
+                newInfo = [AVObject objectWithClassName:@"BeaconInfo"];
+                [newInfo setObject:uuid forKey:@"beaconUUID"];
+            } else {
+                newInfo = [AVObject objectWithClassName:@"BeaconInfo" objectId:object.objectId];
+            }
+            
+            [newInfo setObject:@(self.distX.text.floatValue) forKey:@"x"];
+            [newInfo setObject:@(self.distY.text.floatValue) forKey:@"y"];
+            [newInfo setObject:@(self.motionManager.deviceMotion.attitude.roll * 180 / M_PI) forKey:@"roll"];
+            [newInfo setObject:@(self.motionManager.deviceMotion.attitude.pitch * 180 / M_PI) forKey:@"pitch"];
+            [newInfo setObject:@(self.motionManager.deviceMotion.attitude.yaw * 180 / M_PI) forKey:@"yaw"];
+            [newInfo saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+                if (error != nil) {
+                    NSLog(@"Failed in renewing: %@",error);
+                } else {
+                    [self showAlertWithTitle:@"Successful!" message:@""];
+                }
+            }];
+        }
+    }];
 }
 
 - (NSString *)uuidToName:(NSString *)uuid {
@@ -775,6 +793,17 @@
     };
     
     return data;
+}
+
+- (void)showAlertWithTitle:(NSString *)title message:(NSString *)message {
+    UIAlertController *alert;
+    alert = [UIAlertController alertControllerWithTitle:title
+                                                message:message
+                                         preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"OK"
+                                              style:UIAlertActionStyleCancel
+                                            handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
 }
 
 @end

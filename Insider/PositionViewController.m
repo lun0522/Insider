@@ -121,26 +121,6 @@
                                                                    P0:DEFAULT_P0];
                 [beacon operateKalmanFilterWithObservation:RSSI.floatValue];
                 
-                if ([uuidString isEqualToString:UUID1]) {
-                    beacon.x = @(x1);
-                    beacon.y = @(y1);
-                }
-                
-                if ([uuidString isEqualToString:UUID2]) {
-                    beacon.x = @(x2);
-                    beacon.y = @(y2);
-                }
-                
-                if ([uuidString isEqualToString:UUID3]) {
-                    beacon.x = @(x3);
-                    beacon.y = @(y3);
-                }
-                
-                if ([uuidString isEqualToString:UUID4]) {
-                    beacon.x = @(x4);
-                    beacon.y = @(y4);
-                }
-                
                 [self.beaconsList addObject:beacon];
                 
                 [self displayDistance:beacon.distance onIndex:[self.beaconsUUID count]];

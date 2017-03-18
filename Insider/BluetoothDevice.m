@@ -13,8 +13,11 @@
 - (BluetoothDevice *)initWithUUID:(NSString *)uuid RSSI:(NSNumber *)rssi {
     if (self = [super init]) {
         _deviceUUID = uuid;
-        _x = @(-1);
-        _y = @(-1);
+        _x = @(0.0);
+        _y = @(0.0);
+        _roll  = @(0.0);
+        _pitch = @(0.0);
+        _yaw   = @(0.0);
         _deviceRSSI = rssi;
         _distance = @([BluetoothDevice rssi2distance:_deviceRSSI.floatValue]);
         _historyData = [[NSMutableArray alloc] init];
