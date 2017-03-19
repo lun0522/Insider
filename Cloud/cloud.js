@@ -73,7 +73,7 @@ AV.Cloud.define('GaussianFiltering', function(request, response) {
 });
 
 AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
-    var query =new AV.Query('NeuralRawData');
+    var query = new AV.Query('NeuralRawData');
     query.get(request.params.sourceId).then(function (source) {
         var uuidArray = source.get('beaconUUID');
         var device_x = source.get('x');
@@ -151,11 +151,16 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
 	    					var NewData = AV.Object.extend('NeuralData');
 							var newData = new NewData();
 							newData.set('beacon_uuid', uuidArray[k]);
-							newData.set('x', device_x - existing[0].get('x'));
-							newData.set('y', device_y - existing[0].get('y'));
-							newData.set('roll', device_roll - existing[0].get('roll'));
-							newData.set('pitch', device_pitch - existing[0].get('pitch'));
-							newData.set('yaw', device_yaw - existing[0].get('yaw'));
+							newData.set('device_x', device_x);
+							newData.set('beacon_x', existing[0].get('x'));
+							newData.set('device_y', device_y);
+							newData.set('beacon_y', existing[0].get('y'));
+							newData.set('device_roll', device_roll);
+							newData.set('beacon_roll', existing[0].get('roll'));
+							newData.set('device_pitch', device_pitch);
+							newData.set('beacon_pitch', existing[0].get('pitch'));
+							newData.set('device_yaw', device_yaw);
+							newData.set('beacon_yaw', existing[0].get('yaw'));
 							newData.set('rssi', meanArray[k]);
 							newData.set('variance', varArray[k]);
 							newData.save().then(function (object) {
@@ -164,8 +169,14 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
 								updated++;
 								
 								if (updated == dataArray.length) {
-										return response.success();
-									
+								    var query = new AV.Query('NeuralRawData');
+                                    query.count().then(function (count) {
+                                        return response.success({count: count});
+                                        
+                                    }, function (error) {
+                                        console.error(error);
+								        return response.error(error);
+                                    });
 								}
 							}, function (error) {
 								console.error(error);

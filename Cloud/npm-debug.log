@@ -7,8 +7,8 @@
 6 silly lifecycle node-js-getting-started@1.0.0~predev: no script for predev, continuing
 7 info lifecycle node-js-getting-started@1.0.0~dev: node-js-getting-started@1.0.0
 8 verbose lifecycle node-js-getting-started@1.0.0~dev: unsafe-perm in lifecycle true
-9 verbose lifecycle node-js-getting-started@1.0.0~dev: PATH: /usr/local/lib/node_modules/npm/bin/node-gyp-bin:/Users/lun/Desktop/程序/Server/Insider/node_modules/.bin:/usr/local/bin:/Library/Frameworks/Python.framework/Versions/3.6/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/aria2/bin:/Users/lun/Downloads/protoc-3
-10 verbose lifecycle node-js-getting-started@1.0.0~dev: CWD: /Users/lun/Desktop/程序/Server/Insider
+9 verbose lifecycle node-js-getting-started@1.0.0~dev: PATH: /usr/local/lib/node_modules/npm/bin/node-gyp-bin:/Users/lun/Desktop/程序/Insider/Cloud/node_modules/.bin:/usr/local/bin:/Library/Frameworks/Python.framework/Versions/3.6/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/aria2/bin:/Users/lun/Downloads/protoc-3
+10 verbose lifecycle node-js-getting-started@1.0.0~dev: CWD: /Users/lun/Desktop/程序/Insider/Cloud
 11 silly lifecycle node-js-getting-started@1.0.0~dev: Args: [ '-c', 'nodemon server.js' ]
 12 info lifecycle node-js-getting-started@1.0.0~dev: Failed to exec dev script
 13 verbose stack Error: node-js-getting-started@1.0.0 dev: `nodemon server.js`
@@ -19,7 +19,7 @@
 13 verbose stack     at maybeClose (internal/child_process.js:850:16)
 13 verbose stack     at Process.ChildProcess._handle.onexit (internal/child_process.js:215:5)
 14 verbose pkgid node-js-getting-started@1.0.0
-15 verbose cwd /Users/lun/Desktop/程序/Server/Insider
+15 verbose cwd /Users/lun/Desktop/程序/Insider/Cloud
 16 error Darwin 16.4.0
 17 error argv "/usr/local/bin/node" "/usr/local/bin/npm" "run" "dev"
 18 error node v5.11.0

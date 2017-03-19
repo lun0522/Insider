@@ -18,6 +18,8 @@
 @property (retain, nonatomic) NSNumber *roll;
 @property (retain, nonatomic) NSNumber *pitch;
 @property (retain, nonatomic) NSNumber *yaw;
+@property (retain, nonatomic) NSNumber *a;
+@property (retain, nonatomic) NSNumber *b;
 @property (retain, nonatomic) NSNumber *distance;
 @property (retain, nonatomic) NSNumber *deviceRSSI;
 @property (strong, nonatomic) NSMutableArray *historyData;
@@ -25,7 +27,7 @@
 
 - (BluetoothDevice *)initWithUUID:(NSString *)uuid RSSI:(NSNumber *)rssi;
 - (float)operateKalmanFilterWithObservation:(float)observation;
-+ (float)rssi2distance:(float)rssi;
-+ (float)distance2rssi:(float)dist;
+- (float)rssi2distance:(float)rssi;
+- (float)distance2rssi:(float)dist;
 
 @end

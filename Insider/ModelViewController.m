@@ -224,12 +224,18 @@
             BluetoothDevice *device = [[BluetoothDevice alloc] initWithUUID:uuidString
                                                                        RSSI:RSSI];
             
-            [self.sampledUUID addObject:uuidString];
-            [self.devicesUUID addObject:uuidString];
-            [self.devicesInfo addObject:device];
+            if ([self isTestBeacon:uuidString]) {
+                [self.sampledUUID insertObject:uuidString atIndex:0];
+                [self.devicesUUID insertObject:uuidString atIndex:0];
+                [self.devicesInfo insertObject:device atIndex:0];
+            } else {
+                [self.sampledUUID addObject:uuidString];
+                [self.devicesUUID addObject:uuidString];
+                [self.devicesInfo addObject:device];
+            }
             
             [self.deviceList reloadData];
-            [self.rssiList   reloadData];
+            [self.rssiList reloadData];
         } else if (![self.sampledUUID containsObject:uuidString]) {
             [self.sampledUUID addObject:uuidString];
             
@@ -340,9 +346,10 @@
             
             cell.textLabel.text = [self uuidToName:device.deviceUUID];
             cell.textLabel.font = [UIFont systemFontOfSize:20.0];
+            cell.userInteractionEnabled = [self isTestBeacon:device.deviceUUID]? YES: NO;
+        } else {
+            cell.userInteractionEnabled = NO;
         }
-        
-        cell.userInteractionEnabled = row < self.devicesInfo.count ? YES : NO;
     } else {
         cell = [[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault
                                      reuseIdentifier:nil];
@@ -351,7 +358,6 @@
             BluetoothDevice *device = [self.devicesInfo objectAtIndex:row];
             cell.textLabel.text = [NSString stringWithFormat:@"%d",[device.deviceRSSI intValue]];
         }
-        
         cell.userInteractionEnabled = NO;
     }
     
@@ -540,8 +546,101 @@
     }
     
     [rawData setObject:uuids forKey:@"beaconUUID"];
-    [rawData setObject:@(self.distX.text.floatValue) forKey:@"x"];
-    [rawData setObject:@(self.distY.text.floatValue) forKey:@"y"];
+    
+    if (self.distX.text.intValue == 0) {
+        [rawData setObject:@(0) forKey:@"x"];
+    }
+    
+    if (self.distX.text.intValue == 1) {
+        [rawData setObject:@(x1) forKey:@"x"];
+    }
+    
+    if (self.distX.text.intValue == 2) {
+        [rawData setObject:@(x2) forKey:@"x"];
+    }
+    
+    if (self.distX.text.intValue == 3) {
+        [rawData setObject:@(x3) forKey:@"x"];
+    }
+    
+    if (self.distX.text.intValue == 4) {
+        [rawData setObject:@(x4) forKey:@"x"];
+    }
+    
+    if (self.distX.text.intValue == 5) {
+        [rawData setObject:@(x5) forKey:@"x"];
+    }
+    
+    if (self.distX.text.intValue == 6) {
+        [rawData setObject:@(x6) forKey:@"x"];
+    }
+    
+    if (self.distX.text.intValue == 7) {
+        [rawData setObject:@(x7) forKey:@"x"];
+    }
+    
+    if (self.distX.text.intValue == 8) {
+        [rawData setObject:@(x8) forKey:@"x"];
+    }
+    
+    if (self.distX.text.intValue == 9) {
+        [rawData setObject:@(x9) forKey:@"x"];
+    }
+    
+    if (self.distX.text.intValue == 10) {
+        [rawData setObject:@(x10) forKey:@"x"];
+    }
+    
+    if (self.distX.text.intValue == 11) {
+        [rawData setObject:@(x11) forKey:@"x"];
+    }
+    
+    if (self.distY.text.intValue == 0) {
+        [rawData setObject:@(0) forKey:@"y"];
+    }
+    
+    if (self.distY.text.intValue == 2) {
+        [rawData setObject:@(y2) forKey:@"y"];
+    }
+    
+    if (self.distY.text.intValue == 3) {
+        [rawData setObject:@(y3) forKey:@"y"];
+    }
+    
+    if (self.distY.text.intValue == 4) {
+        [rawData setObject:@(y4) forKey:@"y"];
+    }
+    
+    if (self.distY.text.intValue == 5) {
+        [rawData setObject:@(y5) forKey:@"y"];
+    }
+    
+    if (self.distY.text.intValue == 6) {
+        [rawData setObject:@(y6) forKey:@"y"];
+    }
+    
+    if (self.distY.text.intValue == 7) {
+        [rawData setObject:@(y7) forKey:@"y"];
+    }
+    
+    if (self.distY.text.intValue == 8) {
+        [rawData setObject:@(y8) forKey:@"y"];
+    }
+    
+    if (self.distY.text.intValue == 9) {
+        [rawData setObject:@(y9) forKey:@"y"];
+    }
+    
+    if (self.distY.text.intValue == 10) {
+        [rawData setObject:@(y10) forKey:@"y"];
+    }
+    
+    if (self.distY.text.intValue == 11) {
+        [rawData setObject:@(y11) forKey:@"y"];
+    }
+    
+//    [rawData setObject:@(self.distX.text.floatValue) forKey:@"x"];
+//    [rawData setObject:@(self.distY.text.floatValue) forKey:@"y"];
     [rawData setObject:@(self.motionManager.deviceMotion.attitude.roll * 180 / M_PI) forKey:@"roll"];
     [rawData setObject:@(self.motionManager.deviceMotion.attitude.pitch * 180 / M_PI) forKey:@"pitch"];
     [rawData setObject:@(self.motionManager.deviceMotion.attitude.yaw* 180 / M_PI) forKey:@"yaw"];
@@ -563,7 +662,7 @@
                                                     
                                                     [self stopSamplingAnimation:filterFailed detail:nil];
                                                 } else {
-                                                    [self stopSamplingAnimation:accomplished detail:@""];
+                                                    [self stopSamplingAnimation:accomplished detail:[NSString stringWithFormat:@"Accomplished: %d",[[object objectForKey:@"count"] intValue]]];
                                                 }
                                             }];
             } else {
@@ -691,8 +790,8 @@
 }
 
 - (void)pressEulerAngle:(UILongPressGestureRecognizer *)recognizer {
-    if ([self isPureFloat:self.distX.text] && [self isPureFloat:self.distY.text]) {
-        if (recognizer.state == UIGestureRecognizerStateBegan) {
+    if (recognizer.state == UIGestureRecognizerStateBegan) {
+        if ([self isPureFloat:self.distX.text] && [self isPureFloat:self.distY.text]) {
             UIAlertController *alert;
             alert = [UIAlertController alertControllerWithTitle:@"Choose a beacon"
                                                         message:@"whose info will be renewed"
@@ -717,9 +816,9 @@
             [alert addAction: [UIAlertAction actionWithTitle: @"Cancel" style: UIAlertActionStyleCancel handler:nil]];
             
             [self presentViewController: alert animated: YES completion: nil];
+        } else {
+            [self showAlertWithTitle:@"Coordinate is invalid!" message:@""];
         }
-    } else {
-        [self showAlertWithTitle:@"Coordinate is invalid!" message:@""];
     }
 }
 
@@ -739,8 +838,100 @@
                 [newInfo setObject:uuid forKey:@"beaconUUID"];
             }
             
-            [newInfo setObject:@(self.distX.text.floatValue) forKey:@"x"];
-            [newInfo setObject:@(self.distY.text.floatValue) forKey:@"y"];
+            if (self.distX.text.intValue == 0) {
+                [newInfo setObject:@(0) forKey:@"x"];
+            }
+            
+            if (self.distX.text.intValue == 1) {
+                [newInfo setObject:@(x1) forKey:@"x"];
+            }
+            
+            if (self.distX.text.intValue == 2) {
+                [newInfo setObject:@(x2) forKey:@"x"];
+            }
+            
+            if (self.distX.text.intValue == 3) {
+                [newInfo setObject:@(x3) forKey:@"x"];
+            }
+            
+            if (self.distX.text.intValue == 4) {
+                [newInfo setObject:@(x4) forKey:@"x"];
+            }
+            
+            if (self.distX.text.intValue == 5) {
+                [newInfo setObject:@(x5) forKey:@"x"];
+            }
+            
+            if (self.distX.text.intValue == 6) {
+                [newInfo setObject:@(x6) forKey:@"x"];
+            }
+            
+            if (self.distX.text.intValue == 7) {
+                [newInfo setObject:@(x7) forKey:@"x"];
+            }
+            
+            if (self.distX.text.intValue == 8) {
+                [newInfo setObject:@(x8) forKey:@"x"];
+            }
+            
+            if (self.distX.text.intValue == 9) {
+                [newInfo setObject:@(x9) forKey:@"x"];
+            }
+            
+            if (self.distX.text.intValue == 10) {
+                [newInfo setObject:@(x10) forKey:@"x"];
+            }
+            
+            if (self.distX.text.intValue == 11) {
+                [newInfo setObject:@(x11) forKey:@"x"];
+            }
+            
+            if (self.distY.text.intValue == 0) {
+                [newInfo setObject:@(0) forKey:@"y"];
+            }
+            
+            if (self.distY.text.intValue == 2) {
+                [newInfo setObject:@(y2) forKey:@"y"];
+            }
+            
+            if (self.distY.text.intValue == 3) {
+                [newInfo setObject:@(y3) forKey:@"y"];
+            }
+            
+            if (self.distY.text.intValue == 4) {
+                [newInfo setObject:@(y4) forKey:@"y"];
+            }
+            
+            if (self.distY.text.intValue == 5) {
+                [newInfo setObject:@(y5) forKey:@"y"];
+            }
+            
+            if (self.distY.text.intValue == 6) {
+                [newInfo setObject:@(y6) forKey:@"y"];
+            }
+            
+            if (self.distY.text.intValue == 7) {
+                [newInfo setObject:@(y7) forKey:@"y"];
+            }
+            
+            if (self.distY.text.intValue == 8) {
+                [newInfo setObject:@(y8) forKey:@"y"];
+            }
+            
+            if (self.distY.text.intValue == 9) {
+                [newInfo setObject:@(y9) forKey:@"y"];
+            }
+            
+            if (self.distY.text.intValue == 10) {
+                [newInfo setObject:@(y10) forKey:@"y"];
+            }
+            
+            if (self.distY.text.intValue == 11) {
+                [newInfo setObject:@(y11) forKey:@"y"];
+            }
+            
+//            [newInfo setObject:@(self.distX.text.floatValue) forKey:@"x"];
+//            [newInfo setObject:@(self.distY.text.floatValue) forKey:@"y"];
             [newInfo setObject:@(self.motionManager.deviceMotion.attitude.roll * 180 / M_PI) forKey:@"roll"];
             [newInfo setObject:@(self.motionManager.deviceMotion.attitude.pitch * 180 / M_PI) forKey:@"pitch"];
             [newInfo setObject:@(self.motionManager.deviceMotion.attitude.yaw * 180 / M_PI) forKey:@"yaw"];

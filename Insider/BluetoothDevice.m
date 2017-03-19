@@ -18,8 +18,10 @@
         _roll  = @(0.0);
         _pitch = @(0.0);
         _yaw   = @(0.0);
+        _a = @(0.0);
+        _b = @(0.0);
         _deviceRSSI = rssi;
-        _distance = @([BluetoothDevice rssi2distance:_deviceRSSI.floatValue]);
+        _distance = @([self rssi2distance:_deviceRSSI.floatValue]);
         _historyData = [[NSMutableArray alloc] init];
     }
     
@@ -28,16 +30,16 @@
 
 - (float)operateKalmanFilterWithObservation:(float)observation {
     float filterResult = [_kalmanFilter filterWithObservation:observation];
-    _distance = @([BluetoothDevice rssi2distance:filterResult]);
+    _distance = @([self rssi2distance:filterResult]);
     return _distance.floatValue;
 }
 
-+ (float)rssi2distance:(float)rssi {
-    return pow(10, (rssi - val_a) / val_b);
+- (float)rssi2distance:(float)rssi {
+    return pow(10, (rssi - self.a.floatValue) / self.b.floatValue);
 }
 
-+ (float)distance2rssi:(float)dist {
-    return val_a + val_b * log10(dist);
+- (float)distance2rssi:(float)dist {
+    return self.a.floatValue + self.b.floatValue * log10(dist);
 }
 
 @end
