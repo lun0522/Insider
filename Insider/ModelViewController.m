@@ -421,7 +421,7 @@
                                                                self.isSampling = NO;
                                                                
                                                                AVObject *data = [[AVObject alloc] initWithClassName:@"TempData"];
-                                                               [data setObject:self.beingSampledBeacon.deviceUUID forKey:@"deviceUUID"];
+                                                               [data setObject:self.beingSampledBeacon.deviceUUID forKey:@"beaconUUID"];
                                                                [data setObject:self.beingSampledBeacon.historyData forKey:@"data"];
                                                                [data saveInBackground];
                                                            }];
@@ -456,7 +456,7 @@
     [numberFormatter setNumberStyle:NSNumberFormatterDecimalStyle];
     
     AVObject *data = [[AVObject alloc] initWithClassName:self.isDistance? @"DistanceData": @"AngleData"];
-    [data setObject:self.beingSampledBeacon.deviceUUID forKey:@"deviceUUID"];
+    [data setObject:self.beingSampledBeacon.deviceUUID forKey:@"beaconUUID"];
     [data setObject:self.beingSampledBeacon.historyData forKey:@"data"];
     [data setObject:[numberFormatter numberFromString:self.distY.text]
              forKey:self.isDistance? @"distance": @"angle"];
@@ -539,7 +539,7 @@
         }
     }
     
-    [rawData setObject:uuids forKey:@"deviceUUID"];
+    [rawData setObject:uuids forKey:@"beaconUUID"];
     [rawData setObject:@(self.distX.text.floatValue) forKey:@"x"];
     [rawData setObject:@(self.distY.text.floatValue) forKey:@"y"];
     [rawData setObject:@(self.motionManager.deviceMotion.attitude.roll * 180 / M_PI) forKey:@"roll"];
@@ -726,17 +726,17 @@
 - (void)renewBeaconInfoWithUUID:(NSString *)uuid {
     AVQuery *query = [AVQuery queryWithClassName:@"BeaconInfo"];
     [query whereKey:@"beaconUUID" equalTo:uuid];
-    [query getFirstObjectInBackgroundWithBlock:^(AVObject *object, NSError *error) {
+    [query findObjectsInBackgroundWithBlock:^(NSArray *objects, NSError *error) {
         if (error != nil) {
             NSLog(@"Failed in searching: %@",error);
         } else {
             AVObject *newInfo;
             
-            if (object == nil) {
+            if (objects.count) {
+                newInfo = [AVObject objectWithClassName:@"BeaconInfo" objectId:[[objects objectAtIndex:0] objectId]];
+            } else {
                 newInfo = [AVObject objectWithClassName:@"BeaconInfo"];
                 [newInfo setObject:uuid forKey:@"beaconUUID"];
-            } else {
-                newInfo = [AVObject objectWithClassName:@"BeaconInfo" objectId:object.objectId];
             }
             
             [newInfo setObject:@(self.distX.text.floatValue) forKey:@"x"];

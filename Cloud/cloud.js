@@ -73,15 +73,17 @@ AV.Cloud.define('GaussianFiltering', function(request, response) {
 });
 
 AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
-    var query =new AV.Query('NeuralTempData');
+    var query =new AV.Query('NeuralRawData');
     query.get(request.params.sourceId).then(function (source) {
-        var uuidArray = source.get('deviceUUID');
+        var uuidArray = source.get('beaconUUID');
         var device_x = source.get('x');
         var device_y = source.get('y');
         var device_roll = source.get('roll');
         var device_pitch = source.get('pitch');
         var device_yaw = source.get('yaw');
         var dataArray = source.get('rawData');
+        var meanArray = new Array(0);
+        var varArray = new Array(0);
         
         for (var j = 0, updated = 0; j < dataArray.length; j++) {
             var data = dataArray[j];
@@ -130,48 +132,52 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
               var_RSSI = 0.1;
             }
             
+            meanArray.push(mean_RSSI);
+            varArray.push(var_RSSI);
+            
             var exist = new AV.Query('BeaconInfo');
 	    	exist.equalTo('beaconUUID', uuidArray[j]);
-	    	exist.first().then(function (existing) {
-	    		if (existing == null) {     // Refuse
-	    		    console.log('No info for beacon ' + uuidArray[j]);
+	    	exist.find().then(function(existing) {
+	    		if (existing.length == 0) {     // Refuse
+	    		    console.log('No info for beacon');
 	    		    updated++;
                     	
                 	if (updated == dataArray.length) {
                 		return response.success();
                 	}
 	    		} else {        // Upload
-                     var NewData = AV.Object.extend('NeuralData');
-                     var newData = new NewData();
-                     newData.set('x', device_x - existing.get('x'));
-                     newData.set('y', device_y - existing.get('y'));
-                     newData.set('roll', device_x - existing.get('roll'));
-                     newData.set('pitch', device_x - existing.get('pitch'));
-                     newData.set('yaw', device_x - existing.get('yaw'));
-                     newData.set('rssi', mean_RSSI);
-                     newData.set('variance', var_RSSI);
-                     newData.save().then(function (object) {
-                        AV.Cloud.run('beaconModeling', {targetUUID: uuidArray[j]});
-                    	console.log('Uploaded: ' + object.id);
-                    	updated++;
-                    	
-                    	if (updated == dataArray.length) {
-                    		return response.success();
-                    		
-                    	}
-                    }, function (error) {
-                    	console.error(error);
-                    	return response.error(error);
-                    });
+	    			for (var k = 0; k < dataArray.length; k++) {
+	    				if (uuidArray[k] == existing[0].get('beaconUUID')) {
+	    					var NewData = AV.Object.extend('NeuralData');
+							var newData = new NewData();
+							newData.set('beacon_uuid', uuidArray[k]);
+							newData.set('x', device_x - existing[0].get('x'));
+							newData.set('y', device_y - existing[0].get('y'));
+							newData.set('roll', device_roll - existing[0].get('roll'));
+							newData.set('pitch', device_pitch - existing[0].get('pitch'));
+							newData.set('yaw', device_yaw - existing[0].get('yaw'));
+							newData.set('rssi', meanArray[k]);
+							newData.set('variance', varArray[k]);
+							newData.save().then(function (object) {
+								AV.Cloud.run('beaconModeling', {targetUUID: existing[0].get('beaconUUID')});
+								console.log('Uploaded: ' + object.id);
+								updated++;
+								
+								if (updated == dataArray.length) {
+										return response.success();
+									
+								}
+							}, function (error) {
+								console.error(error);
+								return response.error(error);
+							});
+	    					break;
+	    				}
+	    			}
 	    		}
 	    	}, function (error) {
 	          	console.error(error);
 	      	});
-            
-            // Upload
-           
-			
-			
         }
     }, function (error) {
       console.error(error);
@@ -181,12 +187,12 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
 
 AV.Cloud.define('beaconModeling', function(request, response) {
     var query = new AV.Query('NeuralData');
-    query.equalTo('device_uuid', request.params.targetUUID);
+    query.equalTo('beacon_uuid', request.params.targetUUID);
     query.find().then(function (results) {
         var count = results.length;
     	
     	if (count < 5) {
-    		console.error('Sample size (' + count + ') is too small for modeling.');
+    		console.log('Sample size (' + count + ') is too small for modeling.');
     	} else {
     		var xi = new Array(count);
 	    	var yi = new Array(count);
@@ -211,8 +217,8 @@ AV.Cloud.define('beaconModeling', function(request, response) {
 	    	
 	    	var exist = new AV.Query('BeaconInfo');
 	    	exist.equalTo('beaconUUID',request.params.targetUUID);
-	    	exist.first().then(function (existing) {
-	    		if (existing == null) {
+	    	exist.find().then(function(existing) {
+	    		if (existing.length == 0) {
 	    			var BeaconInfo = AV.Object.extend('BeaconInfo');
 			    	var beaconInfo = new BeaconInfo();
 			    	beaconInfo.set('beaconUUID', request.params.targetUUID);
@@ -224,7 +230,7 @@ AV.Cloud.define('beaconModeling', function(request, response) {
 			          	console.error(error);
 			      	});
 	    		} else {
-	    			var renew = AV.Object.createWithoutData('BeaconInfo', existing.id);
+	    			var renew = AV.Object.createWithoutData('BeaconInfo', existing[0].id);
 		  			renew.set('a', a);
 		  			renew.set('b', b);
 		  			renew.save().then(function(object) {
