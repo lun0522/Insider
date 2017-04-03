@@ -85,6 +85,13 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
         var meanArray = new Array(0);
         var varArray = new Array(0);
         
+        // To renew the raw data
+        var xArray = new Array(source.get('beaconUUID').length);
+        var yArray = new Array(source.get('beaconUUID').length);
+        var rollArray = new Array(source.get('beaconUUID').length);
+        var pitchArray = new Array(source.get('beaconUUID').length);
+        var yawArray = new Array(source.get('beaconUUID').length);
+        
         for (var j = 0, updated = 0; j < dataArray.length; j++) {
             var data = dataArray[j];
             var mean_data = math.mean(data);
@@ -143,11 +150,34 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
 	    		    updated++;
                     	
                 	if (updated == dataArray.length) {
-                		return response.success();
+                	   var renew = AV.Object.createWithoutData('NeuralRawData', source.id);
+			  			renew.set('xs', xArray);
+			  			renew.set('ys', yArray);
+			  			renew.set('rolls', rollArray);
+			  			renew.set('pitchs', pitchArray);
+			  			renew.set('yaws', yawArray);
+			  			renew.save().then(function(renewed) {
+			    	    	var query = new AV.Query('NeuralRawData');
+                            query.count().then(function (count) {
+                                return response.success({count: count});
+                                
+                            }, function (error) {
+                                console.error(error);
+						        return response.error(error);
+                            });
+			    		}, function (error) {
+			          		console.error(error);
+			      		});
                 	}
 	    		} else {        // Upload
 	    			for (var k = 0; k < dataArray.length; k++) {
 	    				if (uuidArray[k] == existing[0].get('beaconUUID')) {
+	    					xArray[k] = existing[0].get('x');
+	    					yArray[k] = existing[0].get('y');
+	    					rollArray[k] = existing[0].get('roll');
+	    					pitchArray[k] = existing[0].get('pitch');
+	    					yawArray[k] = existing[0].get('yaw');
+	    					
 	    					var NewData = AV.Object.extend('NeuralData');
 							var newData = new NewData();
 							newData.set('beacon_uuid', uuidArray[k]);
@@ -164,19 +194,29 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
 							newData.set('rssi', meanArray[k]);
 							newData.set('variance', varArray[k]);
 							newData.save().then(function (object) {
-								AV.Cloud.run('beaconModeling', {targetUUID: existing[0].get('beaconUUID')});
+							    AV.Cloud.run('beaconModeling', {targetUUID: existing[0].get('beaconUUID')});
 								console.log('Uploaded: ' + object.id);
 								updated++;
 								
 								if (updated == dataArray.length) {
-								    var query = new AV.Query('NeuralRawData');
-                                    query.count().then(function (count) {
-                                        return response.success({count: count});
-                                        
-                                    }, function (error) {
-                                        console.error(error);
-								        return response.error(error);
-                                    });
+								    var renew = AV.Object.createWithoutData('NeuralRawData', source.id);
+						  			renew.set('xs', xArray);
+						  			renew.set('ys', yArray);
+						  			renew.set('rolls', rollArray);
+						  			renew.set('pitchs', pitchArray);
+						  			renew.set('yaws', yawArray);
+						  			renew.save().then(function(renewed) {
+						    	    	var query = new AV.Query('NeuralRawData');
+	                                    query.count().then(function (count) {
+	                                        return response.success({count: count});
+	                                        
+	                                    }, function (error) {
+	                                        console.error(error);
+									        return response.error(error);
+	                                    });
+						    		}, function (error) {
+						          		console.error(error);
+						      		});
 								}
 							}, function (error) {
 								console.error(error);
@@ -199,6 +239,7 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
 AV.Cloud.define('beaconModeling', function(request, response) {
     var query = new AV.Query('NeuralData');
     query.equalTo('beacon_uuid', request.params.targetUUID);
+    query.limit(1000);
     query.find().then(function (results) {
         var count = results.length;
     	
@@ -214,7 +255,7 @@ AV.Cloud.define('beaconModeling', function(request, response) {
 	    	var pixi2 = new Array(count);
 	    	
 	    	for (var i = 0; i < count; i++) {
-	    		xi[i] = math.log10(math.sqrt(math.square(results[i].get('x')) + math.square(results[i].get('y'))));
+	    		xi[i] = math.log10(math.sqrt(math.square(results[i].get('device_x') - results[i].get('beacon_x')) + math.square(results[i].get('device_y') - results[i].get('beacon_y'))));
 	    		yi[i] = results[i].get('rssi');
 	    		pi[i] = 1 / results[i].get('variance');
 	    		pixi[i] = pi[i] * xi[i];
@@ -245,7 +286,7 @@ AV.Cloud.define('beaconModeling', function(request, response) {
 		  			renew.set('a', a);
 		  			renew.set('b', b);
 		  			renew.save().then(function(object) {
-		    	    	console.log('Beacon model renewed: ' + object.id);
+		    	    	console.log('Beacon model renewed: ' + object.id + 'based on ' + count + ' records');
 		    		}, function (error) {
 		          		console.error(error);
 		      		});

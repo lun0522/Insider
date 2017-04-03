@@ -22,6 +22,7 @@ typedef NS_ENUM(NSInteger, StopReason) {
     uploadFailed,
     filterFailed,
     accomplished,
+    shouldChange,
     cancelled
 };
 
