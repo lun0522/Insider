@@ -3,7 +3,7 @@ import numpy as np
 
 
 def run_network():
-    filename_queue = tf.train.string_input_producer(["NeuralDataModified.csv"])
+    filename_queue = tf.train.string_input_producer(["NeuralDataCopied.csv"])
     reader = tf.TextLineReader(skip_header_lines=1)
     key, value = reader.read(filename_queue)
 
@@ -12,13 +12,13 @@ def run_network():
         tf.decode_csv(value, record_defaults=record_defaults)
 
     # sample size
-    total = 5000
-    train_size = np.int(total * 0.9 / 10) * 10
+    total = 20000
+    train_size = np.int(total * 0.95 / 10) * 10
     test_size = total - train_size
     # number of inputs and output
     inNum = 6
     outNum = 1
-    batch_size = 10
+    batch_size = 20
     # input X
     XX = tf.placeholder(tf.float32, [None, inNum])
     # correct answers will go here
@@ -27,20 +27,20 @@ def run_network():
     xi = []
     yi = []
     pi = []
-    pixi = []
-    piyi = []
-    pixi2 = []
-    pixiyi = []
+    pi_xi = []
+    pi_yi = []
+    pi_xi2 = []
+    pi_xi_yi = []
     data_batch = []
     result_batch = []
     # layers and their number of neurons
-    L = 10
+    L = 8
     # weights
     W1 = tf.Variable(tf.truncated_normal([inNum, L], stddev=1))
     W2 = tf.Variable(tf.truncated_normal([L, outNum], stddev=1))
     # biases
     B1 = tf.Variable(tf.ones([L]) / 10)
-    B2 = tf.Variable(tf.ones([outNum]) / 10)
+    B2 = tf.Variable(tf.zeros([outNum]))
 
     # the model
     Y1 = tf.nn.tanh(tf.matmul(XX, W1) + B1)
@@ -49,10 +49,10 @@ def run_network():
     # loss function: difference = (predicted_distance - read_distance)^2
     #  where YY: the computed output vector
     #        Y_: the desired output vector
-    difference = tf.reduce_sum(tf.sqrt(tf.abs(YY - Y_)))
+    difference = tf.reduce_sum(tf.abs(YY - Y_))
 
     # training, learning rate = 0.05
-    train_step = tf.train.GradientDescentOptimizer(0.05).minimize(difference)
+    train_step = tf.train.GradientDescentOptimizer(0.03).minimize(difference)
 
     with tf.Session() as sess:
         tf.global_variables_initializer().run()
@@ -72,10 +72,10 @@ def run_network():
             xi.append(np.log10(np.sqrt(np.square(device_x - beacon_x) + np.square(device_y - beacon_y))))
             yi.append(rssi)
             pi.append(30 / variance)
-            pixi.append(pi[i] * xi[i])
-            piyi.append(pi[i] * yi[i])
-            pixi2.append(pi[i] * np.square(xi[i]))
-            pixiyi.append(pi[i] * xi[i] * yi[i])
+            pi_xi.append(pi[i] * xi[i])
+            pi_yi.append(pi[i] * yi[i])
+            pi_xi2.append(pi[i] * np.square(xi[i]))
+            pi_xi_yi.append(pi[i] * xi[i] * yi[i])
 
             data_batch.append((rssi + 60) / 30)
             data_batch.append(distorted_x / distorted_dist)
@@ -92,14 +92,14 @@ def run_network():
 
                 # train
                 sess.run(train_step, feed_dict=train_data)
-                print(B2.eval())
+                print(B1.eval())
 
                 data_batch.clear()
                 result_batch.clear()
 
-        b = (np.sum(pi) * np.sum(pixiyi) - np.sum(pixi) * np.sum(piyi)) / \
-            (np.sum(pi) * np.sum(pixi2) - np.square(np.sum(pixi)))
-        a = (np.sum(piyi) - b * np.sum(pixi)) / np.sum(pi)
+        b = (np.sum(pi) * np.sum(pi_xi_yi) - np.sum(pi_xi) * np.sum(pi_yi)) / \
+            (np.sum(pi) * np.sum(pi_xi2) - np.square(np.sum(pi_xi)))
+        a = (np.sum(pi_yi) - b * np.sum(pi_xi)) / np.sum(pi)
 
         print('a:', a, 'b:', b)
         sum_nn = 0

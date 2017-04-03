@@ -16,10 +16,10 @@ def draw_scatter():
     xi = []
     yi = []
     pi = []
-    pixi = []
-    piyi = []
-    pixi2 = []
-    pixiyi = []
+    pi_xi = []
+    pi_yi = []
+    pi_xi2 = []
+    pi_xi_yi = []
 
     with tf.Session() as sess:
         tf.global_variables_initializer().run()
@@ -35,14 +35,14 @@ def draw_scatter():
             xi.append(np.log10(np.sqrt(np.square(device_x - beacon_x) + np.square(device_y - beacon_y))))
             yi.append(rssi)
             pi.append(20 / variance)
-            pixi.append(pi[i] * xi[i])
-            piyi.append(pi[i] * yi[i])
-            pixi2.append(pi[i] * np.square(xi[i]))
-            pixiyi.append(pi[i] * xi[i] * yi[i])
+            pi_xi.append(pi[i] * xi[i])
+            pi_yi.append(pi[i] * yi[i])
+            pi_xi2.append(pi[i] * np.square(xi[i]))
+            pi_xi_yi.append(pi[i] * xi[i] * yi[i])
 
-        b = (np.sum(pi) * np.sum(pixiyi) - np.sum(pixi) * np.sum(piyi)) / \
-            (np.sum(pi) * np.sum(pixi2) - np.square(np.sum(pixi)))
-        a = (np.sum(piyi) - b * np.sum(pixi)) / np.sum(pi)
+        b = (np.sum(pi) * np.sum(pi_xi_yi) - np.sum(pi_xi) * np.sum(pi_yi)) / \
+            (np.sum(pi) * np.sum(pi_xi2) - np.square(np.sum(pi_xi)))
+        a = (np.sum(pi_yi) - b * np.sum(pi_xi)) / np.sum(pi)
 
         plt.scatter(xi, yi, s=pi, alpha=0.5)
 
