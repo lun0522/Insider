@@ -78,19 +78,19 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
         var uuidArray = source.get('beaconUUID');
         var device_x = source.get('x');
         var device_y = source.get('y');
-        var device_roll = source.get('roll');
+        var device_heading = source.get('heading');
         var device_pitch = source.get('pitch');
-        var device_yaw = source.get('yaw');
         var dataArray = source.get('rawData');
+        var kalman_Q = source.get('kalman_Q');
+        var kalman_R = source.get('kalman_R');
         var meanArray = new Array(0);
         var varArray = new Array(0);
+        var kalmanArray = new Array(0);
         
         // To renew the raw data
         var xArray = new Array(source.get('beaconUUID').length);
         var yArray = new Array(source.get('beaconUUID').length);
-        var rollArray = new Array(source.get('beaconUUID').length);
-        var pitchArray = new Array(source.get('beaconUUID').length);
-        var yawArray = new Array(source.get('beaconUUID').length);
+        var headingArray = new Array(source.get('beaconUUID').length);
         
         for (var j = 0, updated = 0; j < dataArray.length; j++) {
             var data = dataArray[j];
@@ -142,6 +142,20 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
             meanArray.push(mean_RSSI);
             varArray.push(var_RSSI);
             
+            // Kalman filter
+            var rawData = dataArray[j]
+            var kalman_X = rawData[0];
+            var kalman_P = 1.0;
+            var kalman_K = 0.0;
+            
+            for (i = 1; i < rawData.length; i++) {
+                kalman_K = kalman_P / (kalman_P + kalman_R);
+                kalman_X = kalman_X + kalman_K * (rawData[i] - kalman_X);
+                kalman_P = (1 - kalman_K) * kalman_P + kalman_Q;
+            }
+            
+            kalmanArray.push(kalman_X);
+            
             var exist = new AV.Query('BeaconInfo');
 	    	exist.equalTo('beaconUUID', uuidArray[j]);
 	    	exist.find().then(function(existing) {
@@ -153,9 +167,8 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
                 	   var renew = AV.Object.createWithoutData('NeuralRawData', source.id);
 			  			renew.set('xs', xArray);
 			  			renew.set('ys', yArray);
-			  			renew.set('rolls', rollArray);
-			  			renew.set('pitchs', pitchArray);
-			  			renew.set('yaws', yawArray);
+			  			renew.set('headings', headingArray);
+			  			
 			  			renew.save().then(function(renewed) {
 			    	    	var query = new AV.Query('NeuralRawData');
                             query.count().then(function (count) {
@@ -174,9 +187,7 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
 	    				if (uuidArray[k] == existing[0].get('beaconUUID')) {
 	    					xArray[k] = existing[0].get('x');
 	    					yArray[k] = existing[0].get('y');
-	    					rollArray[k] = existing[0].get('roll');
-	    					pitchArray[k] = existing[0].get('pitch');
-	    					yawArray[k] = existing[0].get('yaw');
+	    					headingArray[k] = existing[0].get('heading');
 	    					
 	    					var NewData = AV.Object.extend('NeuralData');
 							var newData = new NewData();
@@ -185,14 +196,12 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
 							newData.set('beacon_x', existing[0].get('x'));
 							newData.set('device_y', device_y);
 							newData.set('beacon_y', existing[0].get('y'));
-							newData.set('device_roll', device_roll);
-							newData.set('beacon_roll', existing[0].get('roll'));
+							newData.set('device_heading', device_heading);
+							newData.set('beacon_heading', existing[0].get('heading'));
 							newData.set('device_pitch', device_pitch);
-							newData.set('beacon_pitch', existing[0].get('pitch'));
-							newData.set('device_yaw', device_yaw);
-							newData.set('beacon_yaw', existing[0].get('yaw'));
 							newData.set('rssi', meanArray[k]);
 							newData.set('variance', varArray[k]);
+							newData.set('kalman', kalmanArray[k]);
 							newData.save().then(function (object) {
 							    AV.Cloud.run('beaconModeling', {targetUUID: existing[0].get('beaconUUID')});
 								console.log('Uploaded: ' + object.id);
@@ -202,9 +211,7 @@ AV.Cloud.define('GaussianFilteringForNeural', function(request, response) {
 								    var renew = AV.Object.createWithoutData('NeuralRawData', source.id);
 						  			renew.set('xs', xArray);
 						  			renew.set('ys', yArray);
-						  			renew.set('rolls', rollArray);
-						  			renew.set('pitchs', pitchArray);
-						  			renew.set('yaws', yawArray);
+						  			renew.set('headings', headingArray);
 						  			renew.save().then(function(renewed) {
 						    	    	var query = new AV.Query('NeuralRawData');
 	                                    query.count().then(function (count) {

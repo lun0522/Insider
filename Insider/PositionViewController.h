@@ -34,8 +34,5 @@
 @property (strong, nonatomic) CBCentralManager *bluetoothManager;
 @property (retain, nonatomic) NSTimer *timer;
 @property (strong, nonatomic) UIButton *dot;
-@property (strong, nonatomic) ParticleFilter *particleFilter;
-@property (strong, nonatomic) ParticleFilter *xFilter;
-@property (strong, nonatomic) ParticleFilter *yFilter;
 
 @end

@@ -12,5 +12,6 @@
 @interface Trilateration : NSObject
 
 + (NSArray *)trilaterateWithBeacons:(NSMutableArray *)beacons;
++ (NSArray *)trilaterateAbandonWithBeacons:(NSMutableArray *)beacons;
 
 @end

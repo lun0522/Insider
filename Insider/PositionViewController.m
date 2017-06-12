@@ -11,8 +11,8 @@
 @interface PositionViewController () {
     float lastX;
     float lastY;
-    float lastFilteredX;
-    float lastFilteredY;
+    float lastAbandonX;
+    float lastAbandonY;
     CAShapeLayer *circle1;
     CAShapeLayer *circle2;
     CAShapeLayer *circle3;
@@ -29,6 +29,8 @@
     
     lastX = -1;
     lastY = -1;
+    lastAbandonX = -1;
+    lastAbandonY = -1;
     [self initArray];
     [self initButton];
     [self initBluetooth];
@@ -74,17 +76,6 @@
 }
 
 - (void)initDot {
-    if (self.isTwoD) {
-        self.particles = [[NSMutableArray alloc] initWithCapacity:DEFAULT_POPULATION];
-        for (int i = 0; i < DEFAULT_POPULATION; i++) {
-            UIButton *particle = [UIButton buttonWithType:UIButtonTypeCustom];
-            [particle setImage:[UIImage imageNamed:@"particle.png"] forState:UIControlStateNormal];
-            particle.frame = CGRectMake(0, 0, 3, 3);
-            [self.particles addObject:particle];
-            [self.topLayer addSubview:particle];
-        }
-    }
-    
     self.dot = [UIButton buttonWithType:UIButtonTypeCustom];
     [self.dot setImage:[UIImage imageNamed:@"dot.png"] forState:UIControlStateNormal];
     self.dot.frame = CGRectMake(0, 0, 20, 20);
@@ -109,12 +100,13 @@
     if (RSSI.intValue <= RSSI_MAXIMUM && RSSI.intValue >= RSSI_MINIMUM) {
         NSString *uuidString = peripheral.identifier.UUIDString;
         
-        if ([uuidString isEqualToString:UUID1] || [uuidString isEqualToString:UUID2] || [uuidString isEqualToString:UUID3] || [uuidString isEqualToString:UUID4]) {
+        if ([uuidString isEqualToString:UUID5] || [uuidString isEqualToString:UUID6] || [uuidString isEqualToString:UUID7]) {
             if (![self.beaconsUUID containsObject:uuidString]) {
                 [self.beaconsUUID addObject:uuidString];
                 
                 BluetoothDevice *beacon = [[BluetoothDevice alloc] initWithUUID:uuidString
                                                                            RSSI:RSSI];
+
                 beacon.kalmanFilter = [[KalmanFilter alloc] initWithQ:self.kalman_Q
                                                                     R:self.kalman_R
                                                                    X0:RSSI.floatValue
@@ -130,15 +122,15 @@
                 BluetoothDevice *beacon = [self.beaconsList objectAtIndex:index];
                 NSNumber *distance = [NSNumber numberWithFloat:[beacon operateKalmanFilterWithObservation:RSSI.floatValue]];
                 
-                if ([uuidString isEqualToString:UUID1]) {
+                if ([uuidString isEqualToString:UUID5]) {
                     [self displayDistance:distance onIndex:1];
                 }
                 
-                if ([uuidString isEqualToString:UUID2]) {
+                if ([uuidString isEqualToString:UUID6]) {
                     [self displayDistance:distance onIndex:2];
                 }
                 
-                if ([uuidString isEqualToString:UUID3] || [uuidString isEqualToString:UUID4]) {
+                if ([uuidString isEqualToString:UUID7]) {
                     [self displayDistance:distance onIndex:3];
                 }
             }
@@ -201,72 +193,9 @@
         [self drawCircleX:beacon2.x.floatValue * MAP_SCALE Y:beacon2.y.floatValue * MAP_SCALE R:beacon2.distance.floatValue * MAP_SCALE Layer:circle2];
         [self drawCircleX:beacon3.x.floatValue  *MAP_SCALE Y:beacon3.y.floatValue * MAP_SCALE R:beacon3.distance.floatValue * MAP_SCALE Layer:circle3];
         
-        if (!self.xFilter && !self.particleFilter) {
-            if (!self.isTwoD) {
-                self.xFilter = [[ParticleFilter alloc] initWithDimension:1
-                                                              worldWidth:0
-                                                             worldHeight:MAP_WIDTH / MAP_SCALE
-                                                              population:DEFAULT_POPULATION
-                                                                       Q:self.particle_Q
-                                                                       R:self.particle_R];
-                
-                self.yFilter = [[ParticleFilter alloc] initWithDimension:1
-                                                              worldWidth:0
-                                                             worldHeight:MAP_HEIGHT / MAP_SCALE
-                                                              population:DEFAULT_POPULATION
-                                                                       Q:self.particle_Q
-                                                                       R:self.particle_R];
-            } else {
-                self.particleFilter = [[ParticleFilter alloc] initWithDimension:2
-                                                                     worldWidth:MAP_WIDTH / MAP_SCALE
-                                                                    worldHeight:MAP_HEIGHT / MAP_SCALE
-                                                                     population:DEFAULT_POPULATION
-                                                                              Q:self.particle_Q
-                                                                              R:self.particle_R];
-            }
-            
-            lastFilteredX = xval;
-            lastFilteredY = yval;
-        } else {
-            float newFilteredX;
-            float newFilteredY;
-            
-            if (!self.isTwoD) {
-                newFilteredX = [self.xFilter filterWithObservation:xval];
-                newFilteredY = [self.yFilter filterWithObservation:yval];
-            } else {
-                NSMutableDictionary *filterResult = [self.particleFilter filterWithObservationX:xval Y:yval];
-                
-                NSMutableArray *particles = [filterResult objectForKey:@"particles"];
-                for (int i = 0; i < DEFAULT_POPULATION; i++) {
-                    NSArray *particlePosition = (NSArray *)[particles objectAtIndex:i];
-                    UIButton *particle = (UIButton *)[self.particles objectAtIndex:i];
-                    particle.center = CGPointMake([(NSNumber *)particlePosition[0] floatValue] * MAP_SCALE, [(NSNumber *)particlePosition[1] floatValue] * MAP_SCALE);
-                }
-                
-                NSArray *center = [filterResult objectForKey:@"center"];
-                newFilteredX = [(NSNumber *)center[0] floatValue];
-                newFilteredY = [(NSNumber *)center[1] floatValue];
-            }
-
-            if (self.enableTracking) {
-                UIBezierPath *path = [UIBezierPath bezierPath];
-                [path moveToPoint:CGPointMake(lastFilteredX * MAP_SCALE, lastFilteredY * MAP_SCALE)];
-                [path addLineToPoint:CGPointMake(newFilteredX * MAP_SCALE, newFilteredY * MAP_SCALE)];
-                CAShapeLayer *shapeLayer = [CAShapeLayer layer];
-                shapeLayer.path = [path CGPath];
-                shapeLayer.strokeColor = [[UIColor redColor] CGColor];
-                shapeLayer.lineWidth = 3.0;
-                [self.map.layer addSublayer:shapeLayer];
-            }
-            
-            lastFilteredX = newFilteredX;
-            lastFilteredY = newFilteredY;
-        }
-        
         self.dot.center = CGPointMake(xval * MAP_SCALE, yval * MAP_SCALE);
         
-        if (lastX >= 0 && self.enableTracking) {
+        if (lastX != -1 && self.enableTracking) {
             UIBezierPath *path = [UIBezierPath bezierPath];
             [path moveToPoint:CGPointMake(lastX * MAP_SCALE, lastY * MAP_SCALE)];
             [path addLineToPoint:CGPointMake(xval * MAP_SCALE, yval * MAP_SCALE)];
@@ -279,6 +208,24 @@
         
         lastX = xval;
         lastY = yval;
+        
+        NSArray *abandonPosition = [Trilateration trilaterateAbandonWithBeacons:self.beaconsList];
+        float abandon_xval = [[abandonPosition objectAtIndex:0] floatValue];
+        float abandon_yval = [[abandonPosition objectAtIndex:1] floatValue];
+        
+        if (lastAbandonX != -1 && self.enableTracking) {
+            UIBezierPath *path = [UIBezierPath bezierPath];
+            [path moveToPoint:CGPointMake(lastAbandonX * MAP_SCALE, lastAbandonY * MAP_SCALE)];
+            [path addLineToPoint:CGPointMake(abandon_xval * MAP_SCALE, abandon_yval * MAP_SCALE)];
+            CAShapeLayer *shapeLayer = [CAShapeLayer layer];
+            shapeLayer.path = [path CGPath];
+            shapeLayer.strokeColor = [[UIColor redColor] CGColor];
+            shapeLayer.lineWidth = 3.0;
+            [self.map.layer addSublayer:shapeLayer];
+        }
+        
+        lastAbandonX = abandon_xval;
+        lastAbandonY = abandon_yval;
     }
 }
 

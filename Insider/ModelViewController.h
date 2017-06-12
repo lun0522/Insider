@@ -9,6 +9,7 @@
 #import <UIKit/UIKit.h>
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <CoreMotion/CoreMotion.h>
+#import <CoreLocation/CoreLocation.h>
 #import <AVOSCloud/AVOSCloud.h>
 #import <mach/mach_time.h>
 #import "BluetoothDevice.h"
@@ -32,9 +33,8 @@ typedef NS_ENUM(NSInteger, StopReason) {
 @property (weak, nonatomic) IBOutlet UITableView *rssiList;
 @property (weak, nonatomic) IBOutlet UITextField *sampleSize;
 @property (weak, nonatomic) IBOutlet UITextField *beaconName;
-@property (weak, nonatomic) IBOutlet UITextField *rollText;
+@property (weak, nonatomic) IBOutlet UITextField *headingText;
 @property (weak, nonatomic) IBOutlet UITextField *pitchText;
-@property (weak, nonatomic) IBOutlet UITextField *yawText;
 @property (weak, nonatomic) IBOutlet UILabel *sizeIndicator;
 @property (weak, nonatomic) IBOutlet UILabel *DAIndicator;
 @property (weak, nonatomic) IBOutlet UIView *chartView;
@@ -60,6 +60,7 @@ typedef NS_ENUM(NSInteger, StopReason) {
 @property (strong, nonatomic) CBCentralManager *bluetoothManager;
 @property (strong, nonatomic) BluetoothDevice *beingSampledBeacon;
 @property (strong, nonatomic) CMMotionManager *motionManager;
+@property (strong, nonatomic) CLLocationManager *locationManager;
 @property (retain, nonatomic) NSTimer *scanTimer;
 @property (retain, nonatomic) NSTimer *renewTimer;
 @property (retain, nonatomic) UIVisualEffectView *blurEffect;

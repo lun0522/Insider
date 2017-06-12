@@ -8,7 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import "KalmanFilter.h"
-#import "ParticleFilter.h"
+//#import "ParticleFilter.h"
 
 @interface BluetoothDevice : NSObject
 
@@ -18,9 +18,12 @@
 @property (retain, nonatomic) NSNumber *roll;
 @property (retain, nonatomic) NSNumber *pitch;
 @property (retain, nonatomic) NSNumber *yaw;
-@property (retain, nonatomic) NSNumber *a;
-@property (retain, nonatomic) NSNumber *b;
+@property (retain, nonatomic) NSNumber *log_a;
+@property (retain, nonatomic) NSNumber *log_b;
+@property (retain, nonatomic) NSNumber *tanh_a;
+@property (retain, nonatomic) NSNumber *tanh_b;
 @property (retain, nonatomic) NSNumber *distance;
+@property (retain, nonatomic) NSNumber *abandonDist;
 @property (retain, nonatomic) NSNumber *deviceRSSI;
 @property (strong, nonatomic) NSMutableArray *historyData;
 @property (strong, nonatomic) KalmanFilter *kalmanFilter;

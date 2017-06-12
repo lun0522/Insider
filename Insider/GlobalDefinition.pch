@@ -10,7 +10,7 @@
 #define GlobalDefinition_pch
 
 #define DEFAULT_FREQUENCY                                            10
-#define DEFAULT_SAMPLE_SIZE                                         100
+#define DEFAULT_SAMPLE_SIZE                                          50
 #define DEFAULT_P0                                                    1
 #define DEFAULT_POPULATION                                          100
 #define RSSI_MAXIMUM                                                -30
@@ -30,7 +30,13 @@
 #define textBeacon6                                  @"insiderBeacon-6"
 #define textBeacon7                                  @"insiderBeacon-7"
 #define MAP_WIDTH                                                   300
-#define MAP_HEIGHT                                                  375
+#define MAP_HEIGHT                                                  400
 #define MAP_SCALE                                                    50
+#define x5                                                          4.2
+#define y5                                                          0.0
+#define x6                                                          7.2
+#define y6                                                          3.6
+#define x7                                                          0.0
+#define y7                                                          5.4
 
 #endif /* GlobalDefinition_pch */

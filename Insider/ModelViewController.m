@@ -154,10 +154,12 @@
 - (void)initManager {
     self.bluetoothManager = [[CBCentralManager alloc] initWithDelegate:self queue:nil];
     self.motionManager = [[CMMotionManager alloc] init];
+    self.locationManager = [[CLLocationManager alloc] init];
     
     if (self.motionManager.deviceMotionAvailable) {
         [self.motionManager startDeviceMotionUpdates];
     }
+    [self.locationManager startUpdatingHeading];
 }
 
 - (void)initTimer {
@@ -223,7 +225,6 @@
         if (![self.devicesUUID containsObject:uuidString]) {
             BluetoothDevice *device = [[BluetoothDevice alloc] initWithUUID:uuidString
                                                                        RSSI:RSSI];
-            NSLog(@"found: %@",uuidString);
             
             if ([self isTestBeacon:uuidString]) {
                 [self.sampledUUID insertObject:uuidString atIndex:0];
@@ -287,19 +288,18 @@
             if (self.isCharting && [uuidString isEqualToString:self.beingSampledBeacon.deviceUUID]) {
                 [self.rawData removeObjectAtIndex:0];
                 [self.KalmanData removeObjectAtIndex:0];
-
-                if (!self.beingSampledBeacon.kalmanFilter) {
-                    self.beingSampledBeacon.kalmanFilter = [[KalmanFilter alloc]
-                                                            initWithQ:self.kalman_Q
-                                                                    R:self.kalman_R
-                                                                   X0:RSSI.floatValue
-                                                                   P0:DEFAULT_P0];
+                
+                if (!device.kalmanFilter) {
+                    device.kalmanFilter = [[KalmanFilter alloc] initWithQ:self.kalman_Q
+                                                                        R:self.kalman_R
+                                                                       X0:RSSI.floatValue
+                                                                       P0:DEFAULT_P0];
                 } else {
-                    [self.beingSampledBeacon operateKalmanFilterWithObservation:RSSI.floatValue];
+                    [device operateKalmanFilterWithObservation:RSSI.floatValue];
                 }
                 
                 [self.rawData addObject:RSSI];
-                [self.KalmanData addObject:@(self.beingSampledBeacon.kalmanFilter.X)];
+                [self.KalmanData addObject:@(device.kalmanFilter.X)];
                 
                 PNLineChartData *data1 = [self chartWithR:52.0 g:152.0 b:219.0 array:self.rawData];
                 PNLineChartData *data2 = [self chartWithR:231.0 g:76.0 b:60.0 array:self.KalmanData];
@@ -547,12 +547,14 @@
     }
     
     [rawData setObject:uuids forKey:@"beaconUUID"];
+    
     [rawData setObject:@(self.distX.text.floatValue) forKey:@"x"];
     [rawData setObject:@(self.distY.text.floatValue) forKey:@"y"];
-    [rawData setObject:@(self.motionManager.deviceMotion.attitude.roll * 180 / M_PI) forKey:@"roll"];
     [rawData setObject:@(self.motionManager.deviceMotion.attitude.pitch * 180 / M_PI) forKey:@"pitch"];
-    [rawData setObject:@(self.motionManager.deviceMotion.attitude.yaw* 180 / M_PI) forKey:@"yaw"];
+    [rawData setObject:@(self.locationManager.heading.magneticHeading) forKey:@"heading"];
     [rawData setObject:datas forKey:@"rawData"];
+    [rawData setObject:@(self.kalman_Q) forKey:@"kalman_Q"];
+    [rawData setObject:@(self.kalman_R) forKey:@"kalman_R"];
     
     if (uuids.count) {
         [rawData saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
@@ -715,9 +717,8 @@
 }
 
 - (void)renewEulerAngle {
-    self.rollText.text = [NSString stringWithFormat:@"%.2f",self.motionManager.deviceMotion.attitude.roll * 180 / M_PI];
     self.pitchText.text = [NSString stringWithFormat:@"%.2f",self.motionManager.deviceMotion.attitude.pitch * 180 / M_PI];
-    self.yawText.text = [NSString stringWithFormat:@"%.2f",self.motionManager.deviceMotion.attitude.yaw * 180 / M_PI];
+    self.headingText.text = [NSString stringWithFormat:@"%.2f",self.locationManager.heading.magneticHeading];
 }
 
 - (void)pressEulerAngle:(UILongPressGestureRecognizer *)recognizer {
@@ -731,18 +732,6 @@
             [alert addAction: [UIAlertAction actionWithTitle: textBeacon1 style: UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
                 [self renewBeaconInfoWithUUID:UUID1];
             }]];
-            
-//            [alert addAction: [UIAlertAction actionWithTitle: textBeacon2 style: UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-//                [self renewBeaconInfoWithUUID:UUID2];
-//            }]];
-//            
-//            [alert addAction: [UIAlertAction actionWithTitle: textBeacon3 style: UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-//                [self renewBeaconInfoWithUUID:UUID3];
-//            }]];
-//            
-//            [alert addAction: [UIAlertAction actionWithTitle: textBeacon4 style: UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-//                [self renewBeaconInfoWithUUID:UUID4];
-//            }]];
             
             [alert addAction: [UIAlertAction actionWithTitle: textBeacon5 style: UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
                 [self renewBeaconInfoWithUUID:UUID5];
@@ -780,12 +769,11 @@
                 newInfo = [AVObject objectWithClassName:@"BeaconInfo"];
                 [newInfo setObject:uuid forKey:@"beaconUUID"];
             }
-
+            
             [newInfo setObject:@(self.distX.text.floatValue) forKey:@"x"];
             [newInfo setObject:@(self.distY.text.floatValue) forKey:@"y"];
-            [newInfo setObject:@(self.motionManager.deviceMotion.attitude.roll * 180 / M_PI) forKey:@"roll"];
             [newInfo setObject:@(self.motionManager.deviceMotion.attitude.pitch * 180 / M_PI) forKey:@"pitch"];
-            [newInfo setObject:@(self.motionManager.deviceMotion.attitude.yaw * 180 / M_PI) forKey:@"yaw"];
+            [newInfo setObject:@(self.locationManager.heading.magneticHeading) forKey:@"heading"];
             
             [newInfo saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
                 if (error != nil) {

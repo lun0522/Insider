@@ -18,10 +18,13 @@
         _roll  = @(0.0);
         _pitch = @(0.0);
         _yaw   = @(0.0);
-        _a = @(0.0);
-        _b = @(0.0);
+        _log_a = @(-39.89);
+        _log_b = @(-12.16);
+        _tanh_a = @(-0.633);
+        _tanh_b = @(0.199);
         _deviceRSSI = rssi;
         _distance = @([self rssi2distance:_deviceRSSI.floatValue]);
+        _abandonDist = @([self rssi2abandonDist:_deviceRSSI.floatValue]);
         _historyData = [[NSMutableArray alloc] init];
     }
     
@@ -31,15 +34,17 @@
 - (float)operateKalmanFilterWithObservation:(float)observation {
     float filterResult = [_kalmanFilter filterWithObservation:observation];
     _distance = @([self rssi2distance:filterResult]);
+    _abandonDist = @([self rssi2abandonDist:filterResult]);
     return _distance.floatValue;
 }
 
 - (float)rssi2distance:(float)rssi {
-    return pow(10, (rssi - self.a.floatValue) / self.b.floatValue);
+    return (pow(10, (rssi - self.log_a.floatValue) / self.log_b.floatValue) / 100.0 * 0.225 +
+            tanhf((rssi + 60.0) / 30.0 * _tanh_a.floatValue + _tanh_b.floatValue) * 10 * 0.775);
 }
 
-- (float)distance2rssi:(float)dist {
-    return self.a.floatValue + self.b.floatValue * log10(dist);
+- (float)rssi2abandonDist:(float)rssi {
+    return (pow(10, (rssi - self.log_a.floatValue) / self.log_b.floatValue) / 100.0);
 }
 
 @end

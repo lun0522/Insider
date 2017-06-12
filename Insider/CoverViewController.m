@@ -18,7 +18,7 @@
     [super viewDidLoad];
     
     self.KF_Q.text = @"0.000001";
-    self.KF_R.text = @"0.0004";
+    self.KF_R.text = @"0.0005";
     
     self.PF_Q.text = @"0.1";
     self.PF_R.text = @"0.05";

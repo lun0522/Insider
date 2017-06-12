@@ -2,57 +2,52 @@ import tensorflow as tf
 import numpy as np
 
 
-def run_network():
-    filename_queue = tf.train.string_input_producer(["NeuralDataCopied.csv"])
+def run():
+    filename_queue = tf.train.string_input_producer(["trainData.csv"])
     reader = tf.TextLineReader(skip_header_lines=1)
     key, value = reader.read(filename_queue)
 
-    record_defaults = [[1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0]]
-    col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12 = \
-        tf.decode_csv(value, record_defaults=record_defaults)
+    record_defaults = [[1.0], [1.0], [1.0], [1.0], [1.0], [1.0]]
+    col1, col2, col3, col4, col5, col6 = tf.decode_csv(value, record_defaults=record_defaults)
 
     # sample size
-    total = 20000
-    train_size = np.int(total * 0.95 / 10) * 10
-    test_size = total - train_size
+    total = 11180
+    train_size = 11180 # np.int(total * 0.8 / 10) * 10
+    test_size = 560 # total - train_size
     # number of inputs and output
-    inNum = 6
-    outNum = 1
+    in_count = 1
+    out_count = 1
     batch_size = 20
     # input X
-    XX = tf.placeholder(tf.float32, [None, inNum])
+    X = tf.placeholder(tf.float32, [None, in_count])
     # correct answers will go here
-    Y_ = tf.placeholder(tf.float32, [None, outNum])
+    Y_ = tf.placeholder(tf.float32, [None, out_count])
     # for linear regression
     xi = []
     yi = []
-    pi = []
-    pi_xi = []
-    pi_yi = []
-    pi_xi2 = []
-    pi_xi_yi = []
-    data_batch = []
-    result_batch = []
-    # layers and their number of neurons
-    L = 8
+    xiyi = []
+    xi2 = []
+    # feed data in batch
+    batch_input = []
+    batch_output = []
+    # Probability of keeping a node during dropout = 1.0 at test time (no dropout) and 0.75 at training time
+    lr = tf.placeholder(tf.float32)
+    pkeep = tf.placeholder(tf.float32)
     # weights
-    W1 = tf.Variable(tf.truncated_normal([inNum, L], stddev=1))
-    W2 = tf.Variable(tf.truncated_normal([L, outNum], stddev=1))
+    W1 = tf.Variable(tf.truncated_normal([in_count, out_count], stddev=1))
     # biases
-    B1 = tf.Variable(tf.ones([L]) / 10)
-    B2 = tf.Variable(tf.zeros([outNum]))
-
+    B1 = tf.Variable(tf.ones([out_count]) / 10)
     # the model
-    Y1 = tf.nn.tanh(tf.matmul(XX, W1) + B1)
-    YY = tf.nn.tanh(tf.matmul(Y1, W2) + B2)
+    activation = tf.nn.tanh
+    YY = activation(tf.matmul(X, W1) + B1)
 
     # loss function: difference = (predicted_distance - read_distance)^2
     #  where YY: the computed output vector
     #        Y_: the desired output vector
-    difference = tf.reduce_sum(tf.abs(YY - Y_))
+    difference = -tf.log(1 - tf.reduce_sum(tf.abs(YY - Y_)) / batch_size)
 
     # training, learning rate = 0.05
-    train_step = tf.train.GradientDescentOptimizer(0.03).minimize(difference)
+    train_step = tf.train.GradientDescentOptimizer(lr).minimize(difference)
 
     with tf.Session() as sess:
         tf.global_variables_initializer().run()
@@ -60,85 +55,77 @@ def run_network():
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
+        idx = 0
         for i in range(train_size):
-            rssi, variance, beacon_x, beacon_y, device_x, device_y, beacon_roll, beacon_pitch, beacon_yaw, device_roll, \
-            device_pitch, device_yaw = sess.run(
-                [col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12])
+            x, y, rela_head, beacon_head, pitch, rssi = sess.run([col1, col2, col3, col4, col5, col6])
 
-            distorted_x = device_x - beacon_x + np.random.rand() * 100 - 50
-            distorted_y = device_y - beacon_y + np.random.rand() * 100 - 50
-            distorted_dist = np.sqrt(np.square(distorted_x) + np.square(distorted_y))
+            if (np.sqrt(np.square(x) + np.square(y)) / 100 >= 1) and (np.sqrt(np.square(x) + np.square(y)) / 100 <= 7.5):
+                xi.append(np.log10(np.sqrt(np.square(x) + np.square(y))))
+                yi.append(rssi)
+                xiyi.append(xi[idx] * yi[idx])
+                xi2.append(np.square(xi[idx]))
+                idx += 1
 
-            xi.append(np.log10(np.sqrt(np.square(device_x - beacon_x) + np.square(device_y - beacon_y))))
-            yi.append(rssi)
-            pi.append(30 / variance)
-            pi_xi.append(pi[i] * xi[i])
-            pi_yi.append(pi[i] * yi[i])
-            pi_xi2.append(pi[i] * np.square(xi[i]))
-            pi_xi_yi.append(pi[i] * xi[i] * yi[i])
+                batch_input.append((rssi + 60) / 30)
+                batch_output.append(np.sqrt(np.square(x) + np.square(y)) / 1000)
 
-            data_batch.append((rssi + 60) / 30)
-            data_batch.append(distorted_x / distorted_dist)
-            data_batch.append(distorted_y / distorted_dist)
-            data_batch.append((beacon_roll - device_roll) / 180)
-            data_batch.append((beacon_pitch - device_pitch) / 180)
-            data_batch.append((beacon_yaw - device_yaw) / 180)
+            max_learning_rate = 0.1
+            min_learning_rate = 0.001
+            decay_speed = 10000.0
+            learning_rate = min_learning_rate + (max_learning_rate - min_learning_rate) * np.exp(-i / decay_speed)
+            # learning_rate = 0.04
 
-            result_batch.append(np.sqrt(np.square(device_x - beacon_x) + np.square(device_y - beacon_y)) / 1000)
-
-            if (i + 1) % batch_size == 0:
-                train_data = {XX: np.reshape(np.array(data_batch), [batch_size, inNum]),
-                              Y_: np.reshape(np.array(result_batch), [batch_size, outNum])}
+            if idx % batch_size == 0 and len(batch_input):
+                train_data = {X: np.reshape(np.array(batch_input), [batch_size, in_count]),
+                              Y_: np.reshape(np.array(batch_output), [batch_size, out_count]),
+                              lr: learning_rate,
+                              pkeep: 1.0}
 
                 # train
                 sess.run(train_step, feed_dict=train_data)
-                print(B1.eval())
 
-                data_batch.clear()
-                result_batch.clear()
+                yy, y_ = sess.run([YY, Y_], feed_dict=train_data)
+                print(y_[0] * 10, yy[0] * 10, np.sum(np.abs(yy - y_)) * 10 / batch_size)
 
-        b = (np.sum(pi) * np.sum(pi_xi_yi) - np.sum(pi_xi) * np.sum(pi_yi)) / \
-            (np.sum(pi) * np.sum(pi_xi2) - np.square(np.sum(pi_xi)))
-        a = (np.sum(pi_yi) - b * np.sum(pi_xi)) / np.sum(pi)
+                batch_input.clear()
+                batch_output.clear()
+
+        b = (np.sum(xiyi) - np.sum(xi) * np.sum(yi) / len(xi)) / (np.sum(xi2) - np.square(np.sum(xi)) / len(xi))
+        a = np.mean(yi) - b * np.mean(xi)
 
         print('a:', a, 'b:', b)
-        sum_nn = 0
-        sum_dr = 0
-        max_nn = 0
+        error_nn = 0
+        error_dr = 0
+        count = 0
 
         for i in range(test_size):
-            rssi, variance, beacon_x, beacon_y, device_x, device_y, beacon_roll, beacon_pitch, beacon_yaw, device_roll, \
-            device_pitch, device_yaw = sess.run(
-                [col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12])
+            x, y, rela_head, beacon_head, pitch, rssi = sess.run([col1, col2, col3, col4, col5, col6])
 
-            distorted_x = device_x - beacon_x + np.random.rand() * 100 - 50
-            distorted_y = device_y - beacon_y + np.random.rand() * 100 - 50
-            distorted_dist = np.sqrt(np.square(distorted_x) + np.square(distorted_y))
+            if (np.sqrt(np.square(x) + np.square(y)) / 100 >= 1) and (np.sqrt(np.square(x) + np.square(y)) / 100 <= 7.5):
+                test_data = {X: np.reshape([(rssi + 60) / 30],
+                                           [-1, in_count]),
+                             Y_: np.reshape(
+                                 [np.sqrt(np.square(x) + np.square(y)) / 1000],
+                                 [-1, out_count]),
+                             pkeep: 1.0}
 
-            test_data = {XX: np.reshape([(rssi + 60) / 30,
-                                         distorted_x / distorted_dist,
-                                         distorted_y / distorted_dist,
-                                         (beacon_roll - device_roll) / 180,
-                                         (beacon_pitch - device_pitch) / 180,
-                                         (beacon_yaw - device_yaw) / 180],
-                                        [-1, inNum]),
-                         Y_: np.reshape(
-                             [np.sqrt(np.square(device_x - beacon_x) + np.square(device_y - beacon_y)) / 1000],
-                             [-1, outNum])}
+                ratio = 0.225
 
-            # test
-            y_, yy = sess.run([Y_, YY], feed_dict=test_data)
-            sum_nn += np.abs(yy * 10 - y_ * 10)
-            sum_dr += np.abs(np.power(10, (rssi - a) / b) / 100 - y_ * 10)
+                # test
+                y_, yy = sess.run([Y_, YY], feed_dict=test_data)
+                dr_result = np.power(10, (rssi - a) / b) / 100
+                nn_result = yy[0][0] * 10 * (1 - ratio) + np.power(10, (rssi - a) / b) / 100 * ratio
+                real_dist = y_ * 10
+                error_dr += np.abs(dr_result - real_dist)
+                error_nn += np.abs(nn_result - real_dist)
 
-            if np.abs(yy * 10 - y_ * 10) > max_nn:
-                max_nn = np.abs(yy * 10 - y_ * 10)
+                if np.abs(nn_result - real_dist) > np.abs(dr_result - real_dist) and np.abs(nn_result - real_dist) > 1.5:
+                    count += 1
 
-            print(i, ':', y_ * 10, yy * 10, np.abs(yy * 10 - y_ * 10),
-                  np.abs(np.power(10, (rssi - a) / b) / 100 - y_ * 10), variance)
-
-        print('nn:', sum_nn / test_size, 'dr:', sum_dr / test_size)
-        print('max_nn:', max_nn)
+        print('nn:', error_nn / test_size, 'dr:', error_dr / test_size)
+        print('worse rate:', count / test_size * 100, '%')
+        print(W1.eval()[0][0])
+        print(B1.eval()[0])
 
         coord.request_stop()
         coord.join(threads)

@@ -1,8 +1,15 @@
-# import singleBeacon
-# singleBeacon.draw_arrow()
+if False:
+    import singleBeacon
+    singleBeacon.draw_arrow()
 
-# import distRSSI
-# distRSSI.draw_scatter()
+if False:
+    import distRSSI
+    distRSSI.draw_scatter()
 
-import neuralNetwork
-neuralNetwork.run_network()
+if False:
+    import neuralNetwork
+    neuralNetwork.run()
+
+if True:
+    import Compare
+    Compare.run()

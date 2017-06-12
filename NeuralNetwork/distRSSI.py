@@ -4,22 +4,22 @@ from matplotlib import pyplot as plt
 
 
 def draw_scatter():
-    filename_queue = tf.train.string_input_producer(["NeuralDataModified.csv"])
+    filename_queue = tf.train.string_input_producer(["finalData.csv"])
     reader = tf.TextLineReader(skip_header_lines=1)
     key, value = reader.read(filename_queue)
 
-    record_defaults = [[1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0], [1.0]]
-    col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12 = \
-        tf.decode_csv(value, record_defaults=record_defaults)
+    record_defaults = [[1.0], [1.0], [1.0], [1.0], [1.0], [1.0]]
+    col1, col2, col3, col4, col5, col6 = tf.decode_csv(value, record_defaults=record_defaults)
 
-    total = 5000
+    total = 2796
     xi = []
     yi = []
-    pi = []
-    pi_xi = []
-    pi_yi = []
-    pi_xi2 = []
-    pi_xi_yi = []
+    xiyi = []
+    xi2 = []
+
+    dist_x = []
+    dist_y = []
+    beacon_heading = []
 
     with tf.Session() as sess:
         tf.global_variables_initializer().run()
@@ -28,32 +28,40 @@ def draw_scatter():
         threads = tf.train.start_queue_runners(coord=coord)
 
         for i in range(total):
-            rssi, variance, beacon_x, beacon_y, device_x, device_y, beacon_roll, beacon_pitch, beacon_yaw, device_roll, \
-            device_pitch, device_yaw = sess.run(
-                [col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12])
+            x, y, rela_head, beacon_head, pitch, rssi = sess.run([col1, col2, col3, col4, col5, col6])
 
-            xi.append(np.log10(np.sqrt(np.square(device_x - beacon_x) + np.square(device_y - beacon_y))))
+            xi.append(np.log10(np.sqrt(np.square(x) + np.square(y))))
             yi.append(rssi)
-            pi.append(20 / variance)
-            pi_xi.append(pi[i] * xi[i])
-            pi_yi.append(pi[i] * yi[i])
-            pi_xi2.append(pi[i] * np.square(xi[i]))
-            pi_xi_yi.append(pi[i] * xi[i] * yi[i])
+            xiyi.append(xi[i] * yi[i])
+            xi2.append(np.square(xi[i]))
 
-        b = (np.sum(pi) * np.sum(pi_xi_yi) - np.sum(pi_xi) * np.sum(pi_yi)) / \
-            (np.sum(pi) * np.sum(pi_xi2) - np.square(np.sum(pi_xi)))
-        a = (np.sum(pi_yi) - b * np.sum(pi_xi)) / np.sum(pi)
+            dist_x.append(x)
+            dist_y.append(y)
+            beacon_heading.append(beacon_head)
 
-        plt.scatter(xi, yi, s=pi, alpha=0.5)
+        b = (np.sum(xiyi) - np.sum(xi) * np.sum(yi) / total) / (np.sum(xi2) - np.square(np.sum(xi)) / total)
+        a = np.mean(yi) - b * np.mean(xi)
+
+        plt.scatter(xi, yi, alpha=0.4, s=20)
 
         X = np.linspace(2, 3, 2, endpoint=True)
         Y = a + b * X
         plt.plot(X, Y, color="red", alpha=0.7, linewidth=2.5, linestyle="-")
 
         plt.title(r'$RSSI = - ' + str(np.around(np.abs(a), decimals=2)) + ' - ' + str(np.around(np.abs(b), decimals=2))
-                  + ' \cdot log_{10}d$', fontsize=28)
+                  + ' \cdot log_{10}d$', fontsize=16)
         plt.xlabel(r'$log_{10}d$', fontsize=16)
         plt.ylabel(r'$RSSI\,(dB)$', fontsize=16)
+
+        # max_rssi = np.max(yi)
+        # min_rssi = np.min(yi)
+        #
+        # for i in range(total):
+        #     plt.scatter(dist_x[i] * np.cos(beacon_heading[i] * np.pi / 180) +
+        #                 dist_y[i] * np.sin(beacon_heading[i] * np.pi / 180),
+        #                 - dist_x[i] * np.sin(beacon_heading[i] * np.pi / 180) +
+        #                 dist_y[i] * np.cos(beacon_heading[i] * np.pi / 180),
+        #                 c=(1, 1 - (yi[i] - min_rssi) / (max_rssi - min_rssi), 0))
 
         plt.show()
 

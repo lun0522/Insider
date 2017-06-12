@@ -302,7 +302,7 @@
 				TargetAttributes = {
 					BD58E9241E2E611B0085EFBC = {
 						CreatedOnToolsVersion = 8.2.1;
-						DevelopmentTeam = DXJ7AC4744;
+						DevelopmentTeam = H932E53VEH;
 						ProvisioningStyle = Automatic;
 					};
 					BD58E93D1E2E611B0085EFBC = {
@@ -581,12 +581,13 @@
 			baseConfigurationReference = B53201BE3D49911447756DFE /* Pods-Insider.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				DEVELOPMENT_TEAM = DXJ7AC4744;
+				DEVELOPMENT_TEAM = H932E53VEH;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "$(SRCROOT)/Insider/GlobalDefinition.pch";
 				INFOPLIST_FILE = Insider/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = Lun.Insider;
+				PRODUCT_BUNDLE_IDENTIFIER = Lun.Insider.;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -596,12 +597,13 @@
 			baseConfigurationReference = A990381E8BAB8DF7280A38C7 /* Pods-Insider.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				DEVELOPMENT_TEAM = DXJ7AC4744;
+				DEVELOPMENT_TEAM = H932E53VEH;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "$(SRCROOT)/Insider/GlobalDefinition.pch";
 				INFOPLIST_FILE = Insider/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = Lun.Insider;
+				PRODUCT_BUNDLE_IDENTIFIER = Lun.Insider.;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
